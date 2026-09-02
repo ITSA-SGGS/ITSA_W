@@ -1,77 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
-import { About } from './components/About';
-import { Focus } from './components/Focus';
 import { Events } from './components/Events';
-import { Numbers } from './components/Numbers';
+import { Quote } from './components/Quote';
 import { Team } from './components/Team';
 import { Gallery } from './components/Gallery';
-import { Terminal } from './components/Terminal';
-import { CTA } from './components/CTA';
 import { Footer } from './components/Footer';
-import { EventModal } from './components/EventModal';
-import { JoinModal } from './components/JoinModal';
+import { CategoryEventsModal } from './components/CategoryEventsModal';
+import { ProfileModal } from './components/ProfileModal';
 import { LightboxModal } from './components/LightboxModal';
-import { EventItem, GalleryItem } from './types';
+import { EventCategoryType, CommitteeMember, GalleryItem } from './types';
 
 export const App: React.FC = () => {
-  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<EventCategoryType | null>(null);
+  const [selectedMember, setSelectedMember] = useState<CommitteeMember | null>(null);
   const [selectedGalleryItem, setSelectedGalleryItem] = useState<GalleryItem | null>(null);
-  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
-  const handleOpenTerminal = () => {
-    const el = document.getElementById('terminal');
-    el?.scrollIntoView({ behavior: 'smooth' });
-  };
+  // Critical Scroll Position Bug Fix: Always start at top (scrollY = 0) on fresh load/refresh unless an explicit hash exists
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.scrollTo(0, 0);
+    } else {
+      const target = document.querySelector(window.location.hash);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }
+  }, []);
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden selection:bg-terminal-green selection:text-black">
+    <div className="relative min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden selection:bg-[#0072CE] selection:text-white">
       {/* Minimal Top Navigation */}
-      <Navbar onOpenJoinModal={() => setIsJoinModalOpen(true)} />
+      <Navbar />
 
       {/* Main Continuous Visual Narrative */}
       <main className="w-full flex flex-col">
-        {/* Section 01: Hero with Right-Biased Linux Atmosphere */}
-        <Hero onOpenTerminal={handleOpenTerminal} />
+        {/* Section 01: Hero */}
+        <Hero />
 
-        {/* Section 02: Introduction / Editorial Statement */}
-        <About />
+        {/* Section 02: Events (2-Category Selector) */}
+        <Events onSelectCategory={(cat) => setSelectedCategory(cat)} />
 
-        {/* Section 03: What ITSA Does (Full-Width Interactive List) */}
-        <Focus />
+        {/* Section 03: Standalone Cinematic Quote Transition */}
+        <Quote />
 
-        {/* Section 04: Events (Editorial Archive) */}
-        <Events onSelectEvent={(evt) => setSelectedEvent(evt)} />
+        {/* Section 04: The People (Official Committee Structure) */}
+        <Team onSelectMember={(member) => setSelectedMember(member)} />
 
-        {/* Section 05: Numbers (Dramatic Typographic Moment) */}
-        <Numbers />
-
-        {/* Section 06: The People (Editorial Directory) */}
-        <Team />
-
-        {/* Section 07: Visual Archive (Documentary Gallery) */}
+        {/* Section 05: Visual Archive (Documentary Gallery) */}
         <Gallery onSelectImage={(img) => setSelectedGalleryItem(img)} />
-
-        {/* Section 08: Terminal (Linux Sandbox Easter Egg) */}
-        <Terminal />
-
-        {/* Section 09: Final Call to Action */}
-        <CTA onOpenJoinModal={() => setIsJoinModalOpen(true)} />
       </main>
 
       {/* Minimal Footer */}
       <Footer />
 
       {/* Interactive Modals */}
-      <EventModal
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+      <CategoryEventsModal
+        category={selectedCategory}
+        onClose={() => setSelectedCategory(null)}
       />
 
-      <JoinModal
-        isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
+      <ProfileModal
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
       />
 
       <LightboxModal

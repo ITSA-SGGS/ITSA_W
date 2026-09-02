@@ -18,7 +18,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-8 border-b border-black/10 dark:border-white/10 gap-4">
           <div>
             <div className="flex items-center gap-3 mb-3 font-mono text-xs tracking-widest uppercase dark:text-[#A1A1A6] text-[#6E6E73]">
-              <span className="text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E]">06</span>
+              <span className="text-[#0072CE] dark:text-[#38BDF8]">06</span>
               <span>/</span>
               <span>VISUAL ARCHIVE</span>
             </div>
@@ -35,7 +35,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
         <div
           onClick={() => onSelectImage(featured)}
           tabIndex={0}
-          className="group relative w-full h-[55vh] sm:h-[65vh] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 mb-8 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green"
+          className="group relative w-full h-[55vh] sm:h-[65vh] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 mb-8 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE]"
         >
           <img
             src={featured.image}
@@ -54,7 +54,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
             </div>
 
             <div className="space-y-2">
-              <span className="font-mono text-xs text-[#35FF7A] tracking-wider uppercase">
+              <span className="font-mono text-xs text-[#38BDF8] tracking-wider uppercase">
                 {featured.category} · {featured.meta}
               </span>
               <h3 className="text-2xl sm:text-4xl font-display font-bold text-white tracking-tight">
@@ -74,7 +74,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
               key={item.id}
               onClick={() => onSelectImage(item)}
               tabIndex={0}
-              className={`group relative rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green ${
+              className={`group relative rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] ${
                 idx === 0 ? 'lg:col-span-2 h-80 sm:h-96' : 'h-80 sm:h-96'
               }`}
             >
@@ -86,7 +86,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent flex flex-col justify-between p-6 text-white opacity-90 group-hover:opacity-100 transition-opacity">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#35FF7A]">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-[#38BDF8]">
                     {item.category}
                   </span>
                   <Maximize2 className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all" />

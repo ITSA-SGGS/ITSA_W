@@ -43,7 +43,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, onClose, onS
       {/* Top Bar */}
       <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20 text-white font-mono text-xs">
         <div className="flex items-center gap-3">
-          <span className="text-[#35FF7A] font-semibold">{item.category}</span>
+          <span className="text-[#38BDF8] font-semibold">{item.category}</span>
           <span className="text-neutral-500">/</span>
           <span className="text-neutral-400">ARCHIVE {item.year}</span>
         </div>
@@ -101,7 +101,7 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, onClose, onS
           <p className="text-xs sm:text-sm text-neutral-400 font-light">
             {item.caption}
           </p>
-          <span className="font-mono text-[11px] text-[#35FF7A]/80 block pt-1">
+          <span className="font-mono text-[11px] text-[#38BDF8]/80 block pt-1">
             {item.meta} · SGGSIE&T Records
           </span>
         </div>

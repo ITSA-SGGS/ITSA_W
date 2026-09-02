@@ -1,26 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { Sun, Moon, Terminal as TerminalIcon, Menu, X, ArrowUpRight } from 'lucide-react';
+import { Sun, Moon, Menu, X } from 'lucide-react';
 
-interface NavbarProps {
-  onOpenJoinModal: () => void;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ onOpenJoinModal }) => {
+export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 30);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on Escape or resize
+  // Close mobile menu on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && mobileMenuOpen) {
@@ -40,84 +36,83 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenJoinModal }) => {
     }
   }, [mobileMenuOpen]);
 
+  // Refined 3-item navigation links
   const navLinks = [
-    { label: 'About', href: '#about' },
-    { label: 'Focus', href: '#focus' },
     { label: 'Events', href: '#events' },
-    { label: 'Impact', href: '#impact' },
     { label: 'The People', href: '#team' },
     { label: 'Archive', href: '#gallery' },
-    { label: 'Terminal', href: '#terminal', icon: true },
   ];
+
+  const isDark = theme === 'dark';
+
+  const navbarContainerClasses = scrolled
+    ? isDark
+      ? 'py-3.5 bg-[#050505]/85 backdrop-blur-xl border-b border-white/[0.08] shadow-lg shadow-black/20'
+      : 'py-3.5 bg-[#F5F5F2]/90 backdrop-blur-xl border-b border-black/[0.08] shadow-sm shadow-black/5'
+    : 'py-6 bg-transparent border-b border-transparent';
+
+  const navTextClasses = isDark
+    ? 'text-[#A1A1A6] hover:text-[#F5F5F7]'
+    : 'text-[#48484E] hover:text-[#111113]';
 
   return (
     <>
-      <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? 'py-3.5 bg-surface-950/75 dark:bg-[#050505]/80 bg-[#F5F5F2]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/[0.07] shadow-sm'
-            : 'py-6 bg-transparent border-b border-transparent'
-        }`}
-      >
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${navbarContainerClasses}`}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex items-center justify-between">
-          {/* Brand Logo & Linux Eyebrow */}
+          {/* Brand Mark with Official ITSA Logo */}
           <a
             href="#"
-            className="group flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green rounded-md"
+            className="group flex items-center gap-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] rounded-lg"
             aria-label="ITSA SGGSIE&T Home"
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-terminal-green dark:bg-[#35FF7A] bg-[#0D7A3E] transition-transform duration-300 group-hover:scale-125" />
-            <div className="flex flex-col">
-              <span className="font-display font-semibold tracking-tight text-lg leading-tight dark:text-[#F5F5F7] text-[#111113] group-hover:opacity-80 transition-opacity">
+            <div className="relative h-9 w-auto flex items-center">
+              <img
+                src={isDark ? '/itsa-logo-dark.png' : '/itsa-logo-light.png'}
+                alt="ITSA Official Logo"
+                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            </div>
+
+            <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
+              <span className={`font-display font-bold tracking-tight text-base leading-none ${isDark ? 'text-[#F5F5F7]' : 'text-[#111113]'}`}>
                 ITSA
               </span>
-              <span className="font-mono text-[10px] tracking-wider uppercase dark:text-subtle-dark text-subtle-light opacity-70">
-                ~/sggs.edu.in
+              <span className="font-mono text-[10px] tracking-wider uppercase opacity-60 text-inherit pt-0.5">
+                SGGSIE&amp;T
               </span>
             </div>
           </a>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-[13px] font-medium tracking-wide">
+          <nav className="hidden md:flex items-center gap-10 text-[13px] font-medium tracking-wide">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="relative py-1 dark:text-[#A1A1A6] text-[#48484E] hover:text-[#111113] dark:hover:text-[#F5F5F7] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green rounded"
+                className={`relative py-1 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] rounded ${navTextClasses}`}
               >
-                <span className="flex items-center gap-1.5">
-                  {link.icon && (
-                    <TerminalIcon className="w-3.5 h-3.5 text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E]" />
-                  )}
-                  {link.label}
-                </span>
+                {link.label}
               </a>
             ))}
           </nav>
 
-          {/* Actions: Theme Toggle & Join Button */}
+          {/* Right Actions: Theme Toggle */}
           <div className="hidden sm:flex items-center gap-4">
-            {/* Minimal Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full border border-black/10 dark:border-white/10 dark:hover:border-white/20 hover:border-black/20 text-[#48484E] dark:text-[#A1A1A6] hover:text-[#111113] dark:hover:text-[#F5F5F7] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green"
-              aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              className={`p-2.5 rounded-full border transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] ${
+                isDark
+                  ? 'border-white/10 hover:border-white/20 text-[#A1A1A6] hover:text-[#F5F5F7] bg-white/[0.02]'
+                  : 'border-black/10 hover:border-black/20 text-[#48484E] hover:text-[#111113] bg-black/[0.02]'
+              }`}
+              aria-label={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+              title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
             >
-              {theme === 'dark' ? (
+              {isDark ? (
                 <Sun className="w-4 h-4 transition-transform hover:rotate-45" />
               ) : (
                 <Moon className="w-4 h-4 transition-transform hover:-rotate-12" />
               )}
-            </button>
-
-            {/* Join ITSA Action */}
-            <button
-              onClick={onOpenJoinModal}
-              className="group relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-mono tracking-wider uppercase border dark:border-white/15 border-black/15 dark:bg-white/[0.04] bg-black/[0.03] dark:hover:bg-white/[0.08] hover:bg-black/[0.06] dark:hover:border-[#35FF7A]/50 hover:border-[#0D7A3E]/40 transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green"
-            >
-              <span className="dark:text-[#F5F5F7] text-[#111113] font-medium">Join ITSA</span>
-              <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </button>
           </div>
 
@@ -125,14 +120,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenJoinModal }) => {
           <div className="flex sm:hidden items-center gap-3">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full border border-black/10 dark:border-white/10 text-muted focus:outline-none"
+              className={`p-2 rounded-full border ${isDark ? 'border-white/10 text-neutral-400' : 'border-black/10 text-neutral-600'} focus:outline-none`}
               aria-label="Toggle Theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg border border-black/10 dark:border-white/10 text-primary focus:outline-none"
+              className={`p-2 rounded-lg border ${isDark ? 'border-white/10 text-white' : 'border-black/10 text-black'} focus:outline-none`}
               aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
               aria-expanded={mobileMenuOpen}
             >
@@ -145,44 +140,37 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenJoinModal }) => {
       {/* Full-Screen Mobile Navigation Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[#F5F5F2] dark:bg-[#050505] flex flex-col justify-between p-8 pt-28 animate-fade-in sm:hidden"
+          className={`fixed inset-0 z-40 flex flex-col justify-between p-8 pt-28 animate-fade-in sm:hidden ${
+            isDark ? 'bg-[#050505] text-[#F5F5F7]' : 'bg-[#F5F5F2] text-[#111113]'
+          }`}
           role="dialog"
           aria-modal="true"
           aria-label="Navigation Menu"
         >
           <div className="flex flex-col space-y-6">
-            <span className="font-mono text-xs text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E] tracking-widest uppercase">
-              ~/itsa/navigation
-            </span>
-            <nav className="flex flex-col space-y-5">
+            <div className="flex items-center gap-2 font-mono text-xs text-[#0072CE] tracking-widest uppercase">
+              <span>~/itsa/navigation</span>
+            </div>
+            <nav className="flex flex-col space-y-6">
               {navLinks.map((link, idx) => (
                 <a
                   key={link.label}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="group flex items-baseline justify-between text-2xl font-display font-medium dark:text-[#F5F5F7] text-[#111113] hover:text-terminal-green transition-colors"
+                  className={`group flex items-baseline justify-between text-2xl font-display font-medium hover:text-[#0072CE] transition-colors ${
+                    isDark ? 'text-[#F5F5F7]' : 'text-[#111113]'
+                  }`}
                 >
                   <span>{link.label}</span>
-                  <span className="font-mono text-xs text-[#6E6E73]">0{idx + 1}</span>
+                  <span className="font-mono text-xs opacity-50">0{idx + 1}</span>
                 </a>
               ))}
             </nav>
           </div>
 
-          <div className="pt-8 border-t border-black/10 dark:border-white/10 flex flex-col gap-4">
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenJoinModal();
-              }}
-              className="w-full py-3.5 rounded-xl font-mono text-xs tracking-wider uppercase bg-[#111113] text-[#F5F5F7] dark:bg-[#F5F5F7] dark:text-[#111113] font-semibold text-center transition-opacity hover:opacity-90"
-            >
-              Join ITSA 2026
-            </button>
-            <div className="flex items-center justify-between text-xs font-mono text-[#6E6E73]">
-              <span>SGGSIE&T NANDED</span>
-              <span>KERNEL 6.8 · OK</span>
-            </div>
+          <div className="pt-8 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-xs font-mono opacity-60">
+            <span>SGGSIE&amp;T NANDED</span>
+            <span>EST. 1981</span>
           </div>
         </div>
       )}

@@ -20,13 +20,13 @@
   
   --border-subtle: rgba(0, 0, 0, 0.08);
   --border-medium: rgba(0, 0, 0, 0.16);
-  --border-active: rgba(13, 122, 62, 0.4);
+  --border-active: rgba(0, 114, 206, 0.4);
   
-  --accent-terminal: #0D7A3E;
-  --accent-dim: rgba(13, 122, 62, 0.08);
-  --accent-glow: rgba(13, 122, 62, 0.15);
+  --accent-terminal: #0072CE;
+  --accent-dim: rgba(0, 114, 206, 0.08);
+  --accent-glow: rgba(0, 114, 206, 0.15);
   
-  --canvas-opacity: 0.18;
+  --canvas-opacity: 0.85;
 }
 
 html.dark {
@@ -43,13 +43,13 @@ html.dark {
   
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-medium: rgba(255, 255, 255, 0.14);
-  --border-active: rgba(53, 255, 122, 0.35);
+  --border-active: rgba(56, 189, 248, 0.35);
   
-  --accent-terminal: #35FF7A;
-  --accent-dim: rgba(53, 255, 122, 0.08);
-  --accent-glow: rgba(53, 255, 122, 0.2);
+  --accent-terminal: #38BDF8;
+  --accent-dim: rgba(56, 189, 248, 0.08);
+  --accent-glow: rgba(56, 189, 248, 0.2);
   
-  --canvas-opacity: 0.75;
+  --canvas-opacity: 0.95;
 }
 
 /* Base resets & typography */

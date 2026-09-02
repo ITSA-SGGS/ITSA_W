@@ -1,155 +1,129 @@
 import React, { useState } from 'react';
-import { EVENTS } from '../data/mockData';
-import { EventItem } from '../types';
-import { Calendar, MapPin, Users, ArrowUpRight, Clock } from 'lucide-react';
+import { EventCategoryType } from '../types';
+import { ArrowUpRight } from 'lucide-react';
 
 interface EventsProps {
-  onSelectEvent: (event: EventItem) => void;
+  onSelectCategory: (category: EventCategoryType) => void;
 }
 
-export const Events: React.FC<EventsProps> = ({ onSelectEvent }) => {
-  const [selectedYear, setSelectedYear] = useState<'ALL' | '2026' | '2025'>('ALL');
-  const [hoveredEventId, setHoveredEventId] = useState<string | null>(EVENTS[0].id);
+export const Events: React.FC<EventsProps> = ({ onSelectCategory }) => {
+  const [hoveredCategory, setHoveredCategory] = useState<EventCategoryType | null>(null);
 
-  const filteredEvents = EVENTS.filter((e) =>
-    selectedYear === 'ALL' ? true : e.year === selectedYear
-  );
+  const categories: {
+    id: EventCategoryType;
+    index: string;
+    title: string;
+    tagline: string;
+    subtext: string;
+    disciplines: string[];
+  }[] = [
+    {
+      id: 'TECHNICAL EVENTS',
+      index: '01',
+      title: 'TECHNICAL EVENTS',
+      tagline: 'Build · Compete · Explore',
+      subtext: 'Deep-tech symposiums, competitive programming sprints, open-source projects, and systems engineering bootcamps.',
+      disciplines: ['Symposiums', 'Hackathons', 'Coding Sprints', 'Workshops'],
+    },
+    {
+      id: 'SPORTS EVENTS',
+      index: '02',
+      title: 'SPORTS EVENTS',
+      tagline: 'Compete · Connect · Play',
+      subtext: 'Departmental cricket league, knockout football championships, indoor racquet tournaments, and strategic chess sprints.',
+      disciplines: ['Cricket League', 'Football Cup', 'Badminton Open', 'Chess Sprint'],
+    },
+    {
+      id: 'CULTURAL EVENTS',
+      index: '03',
+      title: 'CULTURAL EVENTS',
+      tagline: 'Create · Celebrate · Connect',
+      subtext: 'Departmental cultural evenings, acoustic open-mic sessions, digital media exhibits, and creative student productions.',
+      disciplines: ['Cultural Fest', 'Open Mic', 'Festive Night', 'Creative Arts'],
+    },
+  ];
 
   return (
-    <section id="events" className="relative py-32 sm:py-44 px-6 sm:px-8 lg:px-12 w-full border-t border-black/5 dark:border-white/[0.06]">
+    <section id="events" className="relative py-36 sm:py-52 px-6 sm:px-8 lg:px-12 w-full border-t border-black/5 dark:border-white/[0.06]">
       <div className="max-w-7xl mx-auto">
-        {/* Section Header with Year Filter Archive */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 pb-8 border-b border-black/10 dark:border-white/10 gap-6">
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 pb-8 border-b border-black/10 dark:border-white/10 gap-6">
           <div>
             <div className="flex items-center gap-3 mb-3 font-mono text-xs tracking-widest uppercase dark:text-[#A1A1A6] text-[#6E6E73]">
-              <span className="text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E]">03</span>
+              <span className="text-[#0072CE] dark:text-[#38BDF8]">01</span>
               <span>/</span>
-              <span>EVENT ARCHIVE</span>
+              <span>CALENDAR OF SESSIONS</span>
             </div>
             <h2 className="headline-section font-display font-bold text-[#111113] dark:text-[#F5F5F7] tracking-tight">
-              Symposiums &amp; Sessions.
+              Events.
             </h2>
           </div>
 
-          {/* Year Archive Filter */}
-          <div className="flex items-center gap-2 p-1 rounded-full border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] font-mono text-xs">
-            {(['ALL', '2026', '2025'] as const).map((year) => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={`px-4 py-1.5 rounded-full transition-all duration-300 ${
-                  selectedYear === year
-                    ? 'bg-[#111113] text-[#F5F5F7] dark:bg-[#F5F5F7] dark:text-[#111113] font-semibold'
-                    : 'text-[#6E6E73] hover:text-[#111113] dark:hover:text-[#F5F5F7]'
-                }`}
-              >
-                {year === 'ALL' ? 'ALL YEARS' : year}
-              </button>
-            ))}
-          </div>
+          <p className="font-mono text-xs text-[#6E6E73] dark:text-[#8E8E93] max-w-xs">
+            Explore active technical disciplines and annual departmental athletic fixtures.
+          </p>
         </div>
 
-        {/* Editorial Event Archive Rows */}
-        <div className="space-y-6">
-          {filteredEvents.map((evt) => {
-            const isHovered = hoveredEventId === evt.id;
+        {/* Large Editorial Interactive Category Selector Rows */}
+        <div className="divide-y divide-black/10 dark:divide-white/10 border-b border-black/10 dark:border-white/10">
+          {categories.map((cat) => {
+            const isHovered = hoveredCategory === cat.id;
             return (
               <div
-                key={evt.id}
-                onMouseEnter={() => setHoveredEventId(evt.id)}
-                onFocus={() => setHoveredEventId(evt.id)}
-                onClick={() => onSelectEvent(evt)}
+                key={cat.id}
+                onClick={() => onSelectCategory(cat.id)}
+                onMouseEnter={() => setHoveredCategory(cat.id)}
+                onMouseLeave={() => setHoveredCategory(null)}
                 tabIndex={0}
-                className="group relative rounded-2xl border border-black/10 dark:border-white/10 p-6 sm:p-10 transition-all duration-400 cursor-pointer bg-black/[0.01] dark:bg-white/[0.01] hover:border-terminal-green/50 dark:hover:border-[#35FF7A]/40 hover:bg-black/[0.03] dark:hover:bg-white/[0.03] focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelectCategory(cat.id);
+                  }
+                }}
+                className="group relative py-12 sm:py-16 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:bg-black/[0.02] dark:focus-visible:bg-white/[0.02] px-2 rounded-2xl"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                  {/* Left: Date + Category */}
-                  <div className="lg:col-span-3 flex flex-col justify-center">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-mono text-3xl sm:text-4xl font-bold tracking-tight text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E]">
-                        {evt.monthDay}
-                      </span>
-                      <span className="font-mono text-xs px-2 py-0.5 rounded border border-black/10 dark:border-white/10 text-[#6E6E73]">
-                        {evt.year}
-                      </span>
-                    </div>
-                    <span className="font-mono text-xs uppercase tracking-wider text-[#6E6E73] dark:text-[#8E8E93]">
-                      {evt.category}
+                  {/* Left: Index + Big Title */}
+                  <div className="lg:col-span-6 flex items-baseline gap-6 sm:gap-10">
+                    <span className="font-mono text-base sm:text-lg text-[#6E6E73] dark:text-[#55555C] group-hover:text-[#0072CE] dark:group-hover:text-[#38BDF8] transition-colors">
+                      {cat.index}
                     </span>
-                  </div>
 
-                  {/* Center: Title + Tagline + Tags */}
-                  <div className="lg:col-span-6 space-y-2">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl sm:text-2xl lg:text-3xl font-display font-semibold text-[#111113] dark:text-[#F5F5F7] group-hover:text-terminal-green dark:group-hover:text-[#35FF7A] transition-colors">
-                        {evt.title}
+                    <div className="space-y-2">
+                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-[#111113] dark:text-[#F5F5F7] group-hover:translate-x-2 transition-transform duration-300">
+                        {cat.title}
                       </h3>
-                      {evt.status === 'UPCOMING' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-mono text-[10px] bg-terminal-green/10 text-terminal-green dark:text-[#35FF7A] text-[#0D7A3E] border border-terminal-green/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-terminal-green dark:bg-[#35FF7A] bg-[#0D7A3E] animate-pulse" />
-                          UPCOMING
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full font-mono text-[10px] bg-black/5 dark:bg-white/5 text-[#6E6E73] border border-black/10 dark:border-white/10">
-                          ARCHIVE
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm sm:text-base text-[#48484E] dark:text-[#A1A1A6] font-normal">
-                      {evt.tagline}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#6E6E73] pt-2">
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5" />
-                        {evt.location}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5" />
-                        {evt.attendees}
-                      </span>
+                      <p className="font-mono text-xs sm:text-sm text-[#0072CE] dark:text-[#38BDF8] tracking-wider">
+                        {cat.tagline}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Right: Interactive View Action */}
-                  <div className="lg:col-span-3 flex items-center justify-between lg:justify-end gap-4">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-mono text-xs tracking-wider uppercase bg-[#111113] text-[#F5F5F7] dark:bg-[#F5F5F7] dark:text-[#111113] group-hover:bg-terminal-green group-hover:text-black transition-colors font-medium shadow-sm"
-                    >
-                      <span>View Details</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
+                  {/* Center: Description & Tags */}
+                  <div className="lg:col-span-4 space-y-3">
+                    <p className="text-xs sm:text-sm text-[#48484E] dark:text-[#8E8E93] leading-relaxed">
+                      {cat.subtext}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.disciplines.map((item) => (
+                        <span
+                          key={item}
+                          className="px-2.5 py-0.5 rounded font-mono text-[10px] bg-black/[0.03] dark:bg-white/[0.03] text-[#6E6E73] border border-black/5 dark:border-white/5"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: Arrow Action */}
+                  <div className="lg:col-span-2 flex items-center justify-end">
+                    <div className="w-12 h-12 rounded-full border border-black/10 dark:border-white/10 flex items-center justify-center group-hover:border-[#0072CE] dark:group-hover:border-[#38BDF8] group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-all">
+                      <ArrowUpRight className="w-5 h-5 text-[#6E6E73] group-hover:text-[#0072CE] dark:group-hover:text-[#38BDF8] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </div>
                   </div>
                 </div>
-
-                {/* Subtle Image Preview Reveal */}
-                {isHovered && evt.image && (
-                  <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-12 gap-6 items-center animate-fade-in">
-                    <div className="md:col-span-4 h-32 rounded-xl overflow-hidden">
-                      <img
-                        src={evt.image}
-                        alt={evt.title}
-                        className="w-full h-full object-cover grayscale contrast-125 hover:grayscale-0 transition-all duration-500"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="md:col-span-8 space-y-2">
-                      <p className="text-xs sm:text-sm text-[#48484E] dark:text-[#8E8E93] line-clamp-2">
-                        {evt.description}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {evt.tags.map((t) => (
-                          <span
-                            key={t}
-                            className="px-2 py-0.5 rounded text-[10px] font-mono bg-black/5 dark:bg-white/5 text-[#6E6E73]"
-                          >
-                            #{t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}

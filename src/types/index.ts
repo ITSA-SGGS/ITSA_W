@@ -1,34 +1,23 @@
 export type Theme = 'dark' | 'light';
 
-export interface EventItem {
+export interface SampleEvent {
   id: string;
-  year: string;
-  date: string;
-  monthDay: string;
+  index: string;
   title: string;
-  tagline: string;
+  subtitle: string;
   description: string;
-  category: 'SYMPOSIUM' | 'WORKSHOP' | 'HACKATHON' | 'BOOTCAMP' | 'COMPETITION';
-  location: string;
-  attendees: string;
-  image: string;
-  status: 'UPCOMING' | 'COMPLETED';
-  tags: string[];
-  schedule?: { time: string; activity: string }[];
-  speakers?: { name: string; role: string; org: string }[];
+  year: string;
 }
 
-export interface TeamMember {
+export type EventCategoryType = 'TECHNICAL EVENTS' | 'SPORTS EVENTS' | 'CULTURAL EVENTS';
+
+export interface CommitteeMember {
   id: string;
   name: string;
-  role: string;
-  category: 'TY_EXECUTIVE' | 'SY_COORDINATOR' | 'ADVISOR';
-  subRole?: string;
-  avatar?: string;
-  github?: string;
-  linkedin?: string;
-  bio?: string;
-  skills?: string[];
+  position: string;
+  photo: string;
+  tier: 'CORE' | 'TY_LEADERSHIP' | 'SY_COORDINATOR' | 'FACULTY';
+  domain?: 'OVERALL' | 'TECHNICAL' | 'ANCHORING' | 'MEDIA' | 'FINANCE' | 'SPORTS' | 'ALUMNI' | 'OPERATIONS';
 }
 
 export interface GalleryItem {
@@ -40,15 +29,4 @@ export interface GalleryItem {
   image: string;
   aspect: 'wide' | 'tall' | 'square';
   meta: string;
-}
-
-export interface FocusArea {
-  id: string;
-  index: string;
-  title: string;
-  subtitle: string;
-  description: string;
-  tags: string[];
-  metrics: string;
-  image: string;
 }
