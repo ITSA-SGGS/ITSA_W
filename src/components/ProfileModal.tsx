@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CommitteeMember } from '../types';
 import { X } from 'lucide-react';
+import { LinkedinIcon, GithubIcon } from './Icons';
 
 interface ProfileModalProps {
   member: CommitteeMember | null;
@@ -56,9 +57,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ member, onClose }) =
         <div className="flex flex-col items-center text-center space-y-6 pt-2">
           {/* Photograph / Portrait */}
           <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-black/[0.04] dark:bg-white/[0.04] flex items-center justify-center shadow-inner">
-            {!imgError ? (
+            {!imgError && (member.photo_url || member.photo) ? (
               <img
-                src={member.photo}
+                src={member.photo_url || member.photo}
                 alt={member.name}
                 onError={() => setImgError(true)}
                 className="w-full h-full object-cover grayscale contrast-110 transition-transform duration-500 hover:scale-105"
@@ -88,9 +89,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ member, onClose }) =
             </p>
           </div>
 
-          <div className="w-full pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] font-mono text-[#6E6E73] dark:text-[#8E8E93]">
-            <span>ACADEMIC YEAR 2026–2027</span>
-            <span>ITSA SGGSIE&amp;T</span>
+          {/* Social Links (Rendered only when URLs are present) */}
+          {(member.linkedin_url || member.github_url) && (
+            <div className="flex items-center gap-3 pt-1">
+              {member.linkedin_url && (
+                <a
+                  href={member.linkedin_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${member.name} LinkedIn Profile`}
+                  className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-[#0072CE] dark:text-[#38BDF8] transition-colors"
+                >
+                  <LinkedinIcon className="w-4 h-4" />
+                </a>
+              )}
+              {member.github_url && (
+                <a
+                  href={member.github_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${member.name} GitHub Profile`}
+                  className="p-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 text-[#111113] dark:text-[#F5F5F7] transition-colors"
+                >
+                  <GithubIcon className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          )}
+
+          <div className="w-full pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-center text-[11px] font-mono text-[#6E6E73] dark:text-[#8E8E93]">
+            <span>ITSA · Department of Information Technology</span>
           </div>
         </div>
       </div>

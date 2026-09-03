@@ -2,6 +2,7 @@ import React from 'react';
 import { Mail, ArrowUp } from 'lucide-react';
 import { GithubIcon, LinkedinIcon, InstagramIcon } from './Icons';
 import { useTheme } from '../hooks/useTheme';
+import { ItsaLogo } from './ItsaLogo';
 
 export const Footer: React.FC = () => {
   const { theme } = useTheme();
@@ -18,11 +19,7 @@ export const Footer: React.FC = () => {
           {/* Brand & Address */}
           <div className="md:col-span-6 space-y-4">
             <div className="flex items-center gap-3">
-              <img
-                src={isDark ? '/itsa-logo-dark.png' : '/itsa-logo-light.png'}
-                alt="ITSA Official Logo"
-                className="h-8 w-auto object-contain"
-              />
+              <ItsaLogo className="h-8 w-auto object-contain" alt="ITSA Official Logo" />
               <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
                 <span className="font-display font-bold text-lg tracking-tight">ITSA</span>
                 <span className="font-mono text-[10px] text-[#6E6E73] dark:text-[#8E8E93]">~/itsa</span>

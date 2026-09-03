@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import { Sun, Moon, Menu, X } from 'lucide-react';
+import { ItsaLogo } from './ItsaLogo';
 
 export const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -66,11 +67,7 @@ export const Navbar: React.FC = () => {
             aria-label="ITSA SGGSIE&T Home"
           >
             <div className="relative h-9 w-auto flex items-center">
-              <img
-                src={isDark ? '/itsa-logo-dark.png' : '/itsa-logo-light.png'}
-                alt="ITSA Official Logo"
-                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
-              />
+              <ItsaLogo className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CORE_COMMITTEE, TY_LEADERSHIP, SY_COORDINATOR_GROUPS, FACULTY_DIGNITARIES } from '../data/mockData';
+import { useTeam } from '../hooks/useTeam';
 import { CommitteeMember } from '../types';
 import { Users, GraduationCap, ArrowUpRight } from 'lucide-react';
 
@@ -8,6 +8,7 @@ interface TeamProps {
 }
 
 export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
+  const { coreMembers, tyMembers, syMembers, facultyDignitaries } = useTeam();
   const [hoveredMember, setHoveredMember] = useState<CommitteeMember | null>(null);
   const [activeTab, setActiveTab] = useState<'ALL' | 'CORE' | 'TY' | 'SY' | 'FACULTY'>('ALL');
 
@@ -66,7 +67,7 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
             </div>
 
             <div className="divide-y divide-black/10 dark:divide-white/10">
-              {CORE_COMMITTEE.map((member, idx) => (
+              {coreMembers.map((member, idx) => (
                 <div
                   key={member.id}
                   className="group py-6 sm:py-8 transition-all duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
@@ -126,7 +127,7 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
-              {TY_LEADERSHIP.map((member) => (
+              {tyMembers.map((member) => (
                 <div
                   key={member.id}
                   className="group py-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between transition-colors hover:bg-black/[0.015] dark:hover:bg-white/[0.015] px-3 rounded-xl"
@@ -159,10 +160,10 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
           </div>
         )}
 
-        {/* 3. SY COORDINATORS (ORGANIZED BY OFFICIAL RESPONSIBILITY) */}
+        {/* 3. SY COORDINATORS (MATCHING TY TWO-COLUMN EDITORIAL STRUCTURE) */}
         {(activeTab === 'ALL' || activeTab === 'SY') && (
           <div className="mb-24">
-            <div className="flex items-center justify-between pb-4 mb-10 border-b border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between pb-4 mb-8 border-b border-black/10 dark:border-white/10">
               <div className="flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#0072CE]" />
                 <h3 className="font-mono text-xs tracking-widest uppercase text-[#111113] dark:text-[#F5F5F7] font-semibold">
@@ -172,52 +173,34 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
               <span className="font-mono text-[11px] text-[#6E6E73]">PORTFOLIO COORDINATION</span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {SY_COORDINATOR_GROUPS.map((group) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+              {syMembers.map((member) => (
                 <div
-                  key={group.domainName}
-                  className="rounded-2xl border border-black/10 dark:border-white/10 p-6 sm:p-8 bg-black/[0.01] dark:bg-white/[0.01]"
+                  key={member.id}
+                  className="group py-4 border-b border-black/5 dark:border-white/5 flex items-center justify-between transition-colors hover:bg-black/[0.015] dark:hover:bg-white/[0.015] px-3 rounded-xl"
                 >
-                  <div className="flex items-center justify-between mb-6 pb-3 border-b border-black/5 dark:border-white/5">
-                    <span className="font-mono text-xs font-semibold tracking-wider text-[#0072CE] dark:text-[#38BDF8] uppercase">
-                      // {group.domainName}
+                  <div className="space-y-0.5">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-[#6E6E73] dark:text-[#8E8E93] block">
+                      {member.position}
                     </span>
-                    <span className="font-mono text-[10px] text-[#6E6E73]">
-                      {group.members.length} {group.members.length === 1 ? 'COORDINATOR' : 'COORDINATORS'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onSelectMember(member)}
+                      onMouseEnter={() => setHoveredMember(member)}
+                      onMouseLeave={() => setHoveredMember(null)}
+                      className="text-left font-display font-medium text-lg text-[#111113] dark:text-[#F5F5F7] group-hover:text-[#0072CE] dark:group-hover:text-[#38BDF8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] rounded"
+                    >
+                      {member.name}
+                    </button>
                   </div>
-
-                  <div className="space-y-4">
-                    {group.members.map((member) => (
-                      <div
-                        key={member.id}
-                        className="flex items-center justify-between py-1 group/row"
-                      >
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => onSelectMember(member)}
-                            onMouseEnter={() => setHoveredMember(member)}
-                            onMouseLeave={() => setHoveredMember(null)}
-                            className="text-left font-display font-medium text-base text-[#111113] dark:text-[#F5F5F7] hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] rounded"
-                          >
-                            {member.name}
-                          </button>
-                          <span className="font-mono text-[11px] text-[#6E6E73] dark:text-[#8E8E93] block">
-                            {member.position}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onSelectMember(member)}
-                          className="p-1 rounded opacity-30 hover:opacity-100 group-hover/row:opacity-80 transition-opacity"
-                          aria-label={`View ${member.name} profile`}
-                        >
-                          <ArrowUpRight className="w-3.5 h-3.5 text-[#6E6E73] hover:text-[#0072CE]" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onSelectMember(member)}
+                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 opacity-40 group-hover:opacity-100 transition-opacity"
+                    aria-label={`View ${member.name} profile`}
+                  >
+                    <ArrowUpRight className="w-4 h-4 text-[#6E6E73] group-hover:text-[#0072CE]" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -263,7 +246,7 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {FACULTY_DIGNITARIES.map((fac) => (
+              {facultyDignitaries.map((fac) => (
                 <div
                   key={fac.name}
                   onClick={() => onSelectMember({ id: fac.name, name: fac.name, position: fac.position, photo: fac.photo, tier: 'FACULTY' })}
