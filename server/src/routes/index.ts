@@ -9,6 +9,7 @@ import archiveRoutes from './archive.routes.js';
 import announcementsRoutes from './announcements.routes.js';
 import settingsRoutes from './settings.routes.js';
 import usersRoutes from './users.routes.js';
+import adminRoutes from './admin.routes.js';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.use('/health', healthRoutes);
 // Phase 2 Authentication & Session endpoints
 router.use('/auth', authRoutes);
 
-// Phase 3 Foundation Endpoints
+// Phase 3 Public CMS Endpoints
 router.use('/events', eventsRoutes);
 router.use('/team', teamRoutes);
 router.use('/positions', positionsRoutes);
@@ -26,6 +27,9 @@ router.use('/archive', archiveRoutes);
 router.use('/announcements', announcementsRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/users', usersRoutes);
+
+// Phase 3 Admin CMS Endpoints
+router.use('/admin', adminRoutes);
 
 // Development & automated testing helper routes (NEVER mounted in production)
 if (env.NODE_ENV !== 'production') {

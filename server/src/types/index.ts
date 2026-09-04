@@ -1,4 +1,5 @@
 export * from './database.js';
+export * from './cms.js';
 
 export interface HealthResponse {
   status: 'ok' | 'error' | 'unconfigured';

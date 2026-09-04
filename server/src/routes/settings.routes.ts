@@ -1,16 +1,9 @@
 import { Router } from 'express';
+import { siteSettingsController } from '../controllers/siteSettings.controller.js';
 
 const router = Router();
 
-// Foundation placeholder for Phase 3 CMS endpoints
-router.get('/', (_req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Settings API endpoints will be implemented in Phase 3.',
-    },
-  });
-});
+// Public settings endpoint: returns only settings marked is_public = true
+router.get('/public', siteSettingsController.getPublicSettings);
 
 export default router;

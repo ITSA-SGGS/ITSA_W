@@ -105,6 +105,84 @@ export class AdminUserRepository {
     const result = await query<{ count: number }>(text);
     return result.rows[0]?.count || 0;
   }
+
+  /**
+   * List all admin users as SafeAdminUser objects (ordered by created_at ASC).
+   * Never exposes password_hash.
+   */
+  public async findAllSafe(): Promise<SafeAdminUser[]> {
+    const text = `
+      SELECT id, email, full_name, role, is_active, created_at, updated_at, last_login_at
+      FROM admin_users
+      ORDER BY created_at ASC
+    `;
+    const result = await query<SafeAdminUser>(text);
+    return result.rows;
+  }
+
+  /**
+   * Update an existing admin user's role, full_name, or active status.
+   */
+  public async update(
+    id: string,
+    data: { fullName?: string | null; role?: AdminRole; isActive?: boolean }
+  ): Promise<SafeAdminUser | null> {
+    const fields: string[] = [];
+    const params: any[] = [];
+
+    if (data.fullName !== undefined) {
+      params.push(data.fullName);
+      fields.push(`full_name = $${params.length}`);
+    }
+
+    if (data.role !== undefined) {
+      params.push(data.role);
+      fields.push(`role = $${params.length}`);
+    }
+
+    if (data.isActive !== undefined) {
+      params.push(data.isActive);
+      fields.push(`is_active = $${params.length}`);
+    }
+
+    if (fields.length === 0) {
+      return this.findSafeById(id);
+    }
+
+    params.push(id);
+    const text = `
+      UPDATE admin_users
+      SET ${fields.join(', ')}
+      WHERE id = $${params.length}
+      RETURNING id, email, full_name, role, is_active, created_at, updated_at, last_login_at
+    `;
+
+    const result = await query<SafeAdminUser>(text, params);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Toggle or set an admin user's active status.
+   */
+  public async toggleActive(id: string, isActive?: boolean): Promise<SafeAdminUser | null> {
+    const text =
+      isActive !== undefined
+        ? `UPDATE admin_users SET is_active = $1 WHERE id = $2 RETURNING id, email, full_name, role, is_active, created_at, updated_at, last_login_at`
+        : `UPDATE admin_users SET is_active = NOT is_active WHERE id = $1 RETURNING id, email, full_name, role, is_active, created_at, updated_at, last_login_at`;
+    const params = isActive !== undefined ? [isActive, id] : [id];
+
+    const result = await query<SafeAdminUser>(text, params);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Delete an admin user.
+   */
+  public async delete(id: string): Promise<boolean> {
+    const text = `DELETE FROM admin_users WHERE id = $1`;
+    const result = await query(text, [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
 }
 
 export const adminUserRepository = new AdminUserRepository();

@@ -1,16 +1,15 @@
 import { Router } from 'express';
+import { positionsController } from '../controllers/positions.controller.js';
+import { validateRequest } from '../middleware/validate.middleware.js';
+import { publicPositionsQuerySchema } from '../validation/positions.schema.js';
 
 const router = Router();
 
-// Foundation placeholder for Phase 3 CMS endpoints
-router.get('/', (_req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Positions API endpoints will be implemented in Phase 3.',
-    },
-  });
-});
+// Public positions read endpoint: strictly active positions only
+router.get(
+  '/',
+  validateRequest({ query: publicPositionsQuerySchema }),
+  positionsController.getPublicPositions
+);
 
 export default router;
