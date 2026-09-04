@@ -11,7 +11,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "admin:bootstrap": "tsx src/scripts/createAdmin.ts",
-    "test:auth": "tsx src/scripts/testAuth.ts"
+    "test:auth": "tsx src/scripts/testAuth.ts",
+    "test:cms": "tsx src/scripts/testCms.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

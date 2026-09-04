@@ -12,7 +12,7 @@ const router = Router();
 
 // Defense-in-depth guard: Reject with 404 immediately if executed in production
 router.use((_req: Request, res: Response, next: NextFunction) => {
-  if (env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' || env.NODE_ENV === 'production') {
     res.status(404).json({
       success: false,
       error: {

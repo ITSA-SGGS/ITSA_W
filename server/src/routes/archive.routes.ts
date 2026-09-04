@@ -1,16 +1,15 @@
 import { Router } from 'express';
+import { archiveController } from '../controllers/archive.controller.js';
+import { validateRequest } from '../middleware/validate.middleware.js';
+import { publicArchiveQuerySchema } from '../validation/archive.schema.js';
 
 const router = Router();
 
-// Foundation placeholder for Phase 3 CMS endpoints
-router.get('/', (_req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Archive API endpoints will be implemented in Phase 3.',
-    },
-  });
-});
+// Public archive read endpoint: strictly published records only
+router.get(
+  '/',
+  validateRequest({ query: publicArchiveQuerySchema }),
+  archiveController.getPublicArchive
+);
 
 export default router;
