@@ -1,5 +1,2 @@
-/**
- * ITSA Backend - Repositories Layer
- * Parameterized data-access repositories will be implemented in subsequent phases.
- */
-export {};
+export * from './adminUser.repository.js';
+export * from './session.repository.js';
