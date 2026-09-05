@@ -12,9 +12,11 @@
     "db:seed": "tsx src/db/seed.ts",
     "admin:bootstrap": "tsx src/scripts/createAdmin.ts",
     "test:auth": "tsx src/scripts/testAuth.ts",
-    "test:cms": "tsx src/scripts/testCms.ts"
+    "test:cms": "tsx src/scripts/testCms.ts",
+    "test:storage": "tsx src/scripts/testStorage.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
     "@neondatabase/serverless": "^0.10.4",
     "argon2": "^0.45.1",
     "cookie-parser": "^1.4.7",
@@ -23,6 +25,7 @@
     "express": "^4.21.2",
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.0.0",
+    "multer": "^2.3.0",
     "pg": "^8.13.3",
     "ws": "^8.18.0",
     "zod": "^3.24.2"
@@ -31,6 +34,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "^22.13.9",
     "@types/pg": "^8.11.11",
     "@types/ws": "^8.5.14",

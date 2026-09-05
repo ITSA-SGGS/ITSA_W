@@ -38,6 +38,16 @@ function getSecretPatterns(): RegExp[] {
     patterns.push(new RegExp(escaped, 'g'));
   }
 
+  // Mask Cloudflare R2 / S3 secrets if present
+  if (process.env.R2_SECRET_ACCESS_KEY && process.env.R2_SECRET_ACCESS_KEY.length > 4) {
+    const escaped = process.env.R2_SECRET_ACCESS_KEY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    patterns.push(new RegExp(escaped, 'g'));
+  }
+  if (process.env.S3_SECRET_ACCESS_KEY && process.env.S3_SECRET_ACCESS_KEY.length > 4) {
+    const escaped = process.env.S3_SECRET_ACCESS_KEY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    patterns.push(new RegExp(escaped, 'g'));
+  }
+
   return patterns;
 }
 

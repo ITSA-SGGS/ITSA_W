@@ -7,3 +7,4 @@ export * from './announcements.service.js';
 export * from './siteSettings.service.js';
 export * from './adminUsers.service.js';
 export * from './metrics.service.js';
+export * from '../storage/index.js';
