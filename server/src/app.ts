@@ -1,4 +1,5 @@
 import express, { Express } from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -46,7 +47,10 @@ export function createApp(): Express {
   // 4. API Routes
   app.use('/api', routes);
 
-  // 5. Unmatched Routes & Error Handlers
+  // 5. Static Uploads Serving (Local disk storage)
+  app.use('/uploads', express.static(path.resolve(process.cwd(), env.UPLOAD_DIR)));
+
+  // 6. Unmatched Routes & Error Handlers
   app.use(notFoundHandler);
   app.use(errorHandler);
 

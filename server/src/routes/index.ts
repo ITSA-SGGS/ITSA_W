@@ -10,6 +10,7 @@ import announcementsRoutes from './announcements.routes.js';
 import settingsRoutes from './settings.routes.js';
 import usersRoutes from './users.routes.js';
 import adminRoutes from './admin.routes.js';
+import { publicMediaRouter } from './media.routes.js';
 
 const router = Router();
 
@@ -27,6 +28,9 @@ router.use('/archive', archiveRoutes);
 router.use('/announcements', announcementsRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/users', usersRoutes);
+
+// Phase 4 Public Media Endpoints
+router.use('/media', publicMediaRouter);
 
 // Phase 3 Admin CMS Endpoints
 router.use('/admin', adminRoutes);

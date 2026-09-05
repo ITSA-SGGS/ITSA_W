@@ -17,6 +17,7 @@ import { announcementsController } from '../controllers/announcements.controller
 import { siteSettingsController } from '../controllers/siteSettings.controller.js';
 import { adminUsersController } from '../controllers/adminUsers.controller.js';
 import { metricsController } from '../controllers/metrics.controller.js';
+import { adminMediaRouter } from './media.routes.js';
 
 // Validation Schemas
 import {
@@ -323,5 +324,10 @@ usersRouter.delete(
   adminUsersController.deleteUser
 );
 router.use('/users', usersRouter);
+
+// ============================================================================
+// 9. MEDIA & STORAGE (Phase 4)
+// ============================================================================
+router.use('/media', adminMediaRouter);
 
 export default router;

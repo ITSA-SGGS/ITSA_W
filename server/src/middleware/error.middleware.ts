@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import multer from 'multer';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { ApiErrorResponse } from '../types/index.js';
@@ -43,7 +44,30 @@ export function errorHandler(
     return;
   }
 
-  // 3. Known Operational AppErrors
+  // 3. Multer Upload Errors
+  if (err instanceof multer.MulterError) {
+    let message = err.message;
+    let code = 'UPLOAD_ERROR';
+
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'Uploaded file exceeds the maximum allowed size limit.';
+      code = 'FILE_TOO_LARGE';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = `Unexpected file field "${err.field}". File must be uploaded under the "file" field.`;
+      code = 'INVALID_FILE_FIELD';
+    }
+
+    res.status(400).json({
+      success: false,
+      error: {
+        code,
+        message,
+      },
+    });
+    return;
+  }
+
+  // 4. Known Operational AppErrors
   if (err instanceof AppError) {
     if (err.statusCode >= 500) {
       logger.error(`AppError [${err.code}]:`, err.message);
