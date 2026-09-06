@@ -15,7 +15,7 @@ const ALL_MOCK_EVENTS: Record<string, SampleEvent[]> = {
   'CULTURAL EVENTS': SAMPLE_CULTURAL_EVENTS,
 };
 
-// In-memory mock store for local development before Supabase is connected
+// In-memory mock store for local development fallback
 let inMemoryEvents: SampleEvent[] = [
   ...SAMPLE_TECHNICAL_EVENTS.map((e, idx) => ({
     ...e,
