@@ -87,7 +87,8 @@ VALUES
   -- Faculty Dignitaries
   ('ITSA Faculty Coordinator', 'FACULTY', 'OVERALL', 'Faculty advisor guiding student body initiatives', 30, true),
   ('Head of the Department', 'FACULTY', 'OVERALL', 'Head of the Department of Information Technology', 31, true),
-  ('Dean Student Activities', 'FACULTY', 'OVERALL', 'Dean of Student Affairs, SGGSIE&T', 32, true);
+  ('Dean Student Activities', 'FACULTY', 'OVERALL', 'Dean of Student Affairs, SGGSIE&T', 32, true)
+ON CONFLICT (name, tier) DO NOTHING;
 
 -- ============================================================================
 -- 3. OFFICIAL COMMITTEE MEMBERS (35 INDIVIDUALS, ACADEMIC YEAR 2026–2027)
@@ -135,7 +136,8 @@ VALUES
   -- Faculty Dignitaries
   ('Dr. Ankush Sawarkar', 'ITSA Faculty Coordinator', 'FACULTY', 'OVERALL', 'Department of Information Technology', '/team/dr-ankush-sawarkar.jpg', '2026–2027', 33, true),
   ('Dr. C. P. Navdeti', 'Head of the Department', 'FACULTY', 'OVERALL', 'Department of Information Technology', '/team/dr-cp-navdeti.jpg', '2026–2027', 34, true),
-  ('Dr. M. V. Vaidya', 'Dean Student Activities', 'FACULTY', 'OVERALL', 'SGGSIE&T, Nanded', '/team/dr-mv-vaidya.jpg', '2026–2027', 35, true);
+  ('Dr. M. V. Vaidya', 'Dean Student Activities', 'FACULTY', 'OVERALL', 'SGGSIE&T, Nanded', '/team/dr-mv-vaidya.jpg', '2026–2027', 35, true)
+ON CONFLICT (name, position, tenure_year) DO NOTHING;
 
 -- ============================================================================
 -- 4. AUTHENTIC ARCHIVE PHOTOGRAPHIC RECORDS (5 REAL IMAGES)
@@ -146,13 +148,15 @@ VALUES
   ('Archive Record 02', 'Auditorium Seminar & Technical Presentation', '/archive/WhatsApp%20Image%202026-09-02%20at%203.39.22%20PM.jpeg', 2025, 'Department Seminar', 2, true),
   ('Archive Record 03', 'Certificate & Award Felicitation Ceremony', '/archive/WhatsApp%20Image%202026-09-02%20at%203.39.20%20PM.jpeg', 2025, 'Felicitation Ceremony', 3, true),
   ('Archive Record 04', 'Engineer''s Day Faculty Felicitation', '/archive/WhatsApp%20Image%202026-09-02%20at%203.39.22%20PM%20(1).jpeg', 2025, 'Engineer''s Day Celebration', 4, true),
-  ('Archive Record 05', 'Guest & Coordinator Felicitation', '/archive/WhatsApp%20Image%202026-09-02%20at%203.39.21%20PM.jpeg', 2025, 'Department Felicitation', 5, true);
+  ('Archive Record 05', 'Guest & Coordinator Felicitation', '/archive/WhatsApp%20Image%202026-09-02%20at%203.39.21%20PM.jpeg', 2025, 'Department Felicitation', 5, true)
+ON CONFLICT (image_url) DO NOTHING;
 
 -- ============================================================================
 -- 5. BASELINE SAMPLE EVENTS (12 EVENTS)
 -- ============================================================================
 INSERT INTO events (title, description, category, year, status, is_published, display_order)
-VALUES
+SELECT v.title, v.description, v.category, v.year, v.status, v.is_published, v.display_order
+FROM (VALUES
   ('TECHNOVA', 'A technical symposium showcasing technology, engineering keynotes, student project exhibits, and algorithmic challenges.', 'TECHNICAL', 2026, 'UPCOMING', true, 1),
   ('CODEFORGE', 'A competitive programming, data structures, and problem-solving sprint across algorithmic problem sets.', 'TECHNICAL', 2026, 'UPCOMING', true, 2),
   ('BUILD LAB', 'A hands-on technical workshop covering modern systems architecture, performance tuning, and software craft.', 'TECHNICAL', 2026, 'UPCOMING', true, 3),
@@ -166,4 +170,8 @@ VALUES
   ('CULTURAL FEST', 'A vibrant showcase of student musical performances, stage productions, choreography, and artistic expressions.', 'CULTURAL', 2026, 'UPCOMING', true, 9),
   ('OPEN MIC', 'A creative stage providing students an open platform for acoustic sessions, spoken word, and performance art.', 'CULTURAL', 2026, 'UPCOMING', true, 10),
   ('FESTIVE NIGHT', 'An annual celebratory gathering uniting the student body through arts, heritage presentations, and community storytelling.', 'CULTURAL', 2026, 'UPCOMING', true, 11),
-  ('DIGITAL ARTS EXHIBIT', 'An interactive gallery featuring student digital art, creative photography, and audiovisual installations.', 'CULTURAL', 2026, 'UPCOMING', true, 12);
+  ('DIGITAL ARTS EXHIBIT', 'An interactive gallery featuring student digital art, creative photography, and audiovisual installations.', 'CULTURAL', 2026, 'UPCOMING', true, 12)
+) AS v(title, description, category, year, status, is_published, display_order)
+WHERE NOT EXISTS (
+  SELECT 1 FROM events e WHERE e.title = v.title AND e.year = v.year
+);
