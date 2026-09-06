@@ -1,10 +1,49 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
 import { GalleryItem, ArchiveFormData } from '../types';
 import { GALLERY_ITEMS } from '../data/mockData';
 
 /**
- * Resolves archive image URLs from Supabase Storage paths, absolute URLs, or local paths safely.
+ * Media upload response type matching backend StorageUploadResult.
+ */
+export interface MediaUploadResult {
+  url: string;
+  key: string;
+  bucket: string;
+  size: number;
+  mimeType: string;
+  category: string;
+  createdAt: string;
+}
+
+/**
+ * Asynchronously resolves a media key, relative path, or legacy URL to a public URL
+ * using the authoritative backend media resolution endpoint: GET /api/media/resolve?url=...
+ */
+export async function resolveMediaUrl(rawUrl: string | null | undefined): Promise<string> {
+  if (!rawUrl) return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('/') && !trimmed.startsWith('/uploads/')) {
+    try {
+      return encodeURI(decodeURI(trimmed));
+    } catch {
+      return trimmed;
+    }
+  }
+
+  const res = await api.get<{ original: string; resolvedUrl: string }>(
+    `/api/media/resolve?url=${encodeURIComponent(trimmed)}`
+  );
+  return res.resolvedUrl;
+}
+
+/**
+ * Synchronously resolves archive image URLs for immediate UI rendering safely.
  */
 export function resolveArchiveImageUrl(rawUrl: string | null | undefined): string {
   if (!rawUrl) return '';
@@ -22,14 +61,6 @@ export function resolveArchiveImageUrl(rawUrl: string | null | undefined): strin
       return encodeURI(decodeURI(trimmed));
     } catch {
       return trimmed;
-    }
-  }
-
-  // If it's a Supabase storage path like "archives/xyz.jpg"
-  if (isSupabaseConfigured) {
-    const { data } = supabase.storage.from('archive-media').getPublicUrl(trimmed);
-    if (data?.publicUrl) {
-      return data.publicUrl;
     }
   }
 
@@ -204,7 +235,8 @@ export async function deleteArchiveRecord(id: string): Promise<void> {
 }
 
 /**
- * Uploads an archive photograph to the 'archive-media' Supabase Storage bucket.
+ * Uploads an archive photograph using the backend Express media API.
+ * Permitted for ADMIN and SUPER_ADMIN.
  */
 export async function uploadArchiveImage(file: File): Promise<string> {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
@@ -212,32 +244,14 @@ export async function uploadArchiveImage(file: File): Promise<string> {
     throw new Error('Unsupported image format. Please upload JPEG, PNG, WebP, or AVIF.');
   }
 
+  // Enforce 10MB limit
   if (file.size > 10 * 1024 * 1024) {
     throw new Error('Image size exceeds 10MB limit.');
   }
 
-  if (!isSupabaseConfigured) {
-    return URL.createObjectURL(file);
-  }
+  const formData = new FormData();
+  formData.append('file', file);
 
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-  const filePath = `archives/${cleanFileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('archive-media')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (uploadError) {
-    throw new Error(`Storage upload failed: ${uploadError.message}`);
-  }
-
-  const { data } = supabase.storage
-    .from('archive-media')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  const res = await api.post<MediaUploadResult>('/api/admin/media/upload/archive', formData);
+  return res.url;
 }

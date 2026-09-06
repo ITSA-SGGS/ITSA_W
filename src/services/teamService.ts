@@ -1,4 +1,3 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
 import { CommitteeMember, CommitteeTier, MemberFormData } from '../types';
 import {
@@ -188,7 +187,21 @@ export async function deleteMember(id: string): Promise<void> {
 }
 
 /**
- * Uploads a profile portrait to the 'team-photos' Supabase Storage bucket.
+ * Media upload response type matching backend StorageUploadResult.
+ */
+export interface MediaUploadResult {
+  url: string;
+  key: string;
+  bucket: string;
+  size: number;
+  mimeType: string;
+  category: string;
+  createdAt: string;
+}
+
+/**
+ * Uploads a team member portrait using the backend Express media API.
+ * Permitted for ADMIN and SUPER_ADMIN.
  */
 export async function uploadMemberPhoto(file: File): Promise<string> {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
@@ -196,32 +209,14 @@ export async function uploadMemberPhoto(file: File): Promise<string> {
     throw new Error('Unsupported image format. Please upload JPEG, PNG, WebP, or AVIF.');
   }
 
+  // Enforce 5MB limit
   if (file.size > 5 * 1024 * 1024) {
     throw new Error('Photo size exceeds the 5MB limit.');
   }
 
-  if (!isSupabaseConfigured) {
-    return URL.createObjectURL(file);
-  }
+  const formData = new FormData();
+  formData.append('file', file);
 
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-  const filePath = `portraits/${cleanFileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('team-photos')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (uploadError) {
-    throw new Error(`Storage upload failed: ${uploadError.message}`);
-  }
-
-  const { data } = supabase.storage
-    .from('team-photos')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  const res = await api.post<MediaUploadResult>('/api/admin/media/upload/team', formData);
+  return res.url;
 }
