@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { SiteSetting } from '../types';
 
 let inMemorySettings: Record<string, any> = {
@@ -28,33 +29,20 @@ let inMemorySettings: Record<string, any> = {
  * Fetches all public site settings with fallback.
  */
 export async function getPublicSiteSettings(): Promise<Record<string, any>> {
-  if (!isSupabaseConfigured) {
-    return { ...inMemorySettings };
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('key, value')
-      .eq('is_public', true);
+    const data = await api.get<Record<string, any>>('/api/settings/public');
 
-    if (error) {
-      console.warn('Supabase site_settings query failed, using fallback:', error.message);
-      return { ...inMemorySettings };
-    }
-
-    if (!data || data.length === 0) {
+    if (!data || Object.keys(data).length === 0) {
       return { ...inMemorySettings };
     }
 
     const settingsMap: Record<string, any> = { ...inMemorySettings };
-    const rows = data as Array<{ key: string; value: any }>;
-    for (const item of rows) {
-      settingsMap[item.key] = item.value;
+    for (const [key, value] of Object.entries(data)) {
+      settingsMap[key] = value;
     }
     return settingsMap;
   } catch (err) {
-    console.warn('Failed to fetch site settings from Supabase:', err);
+    console.warn('Failed to fetch site settings from API:', err);
     return { ...inMemorySettings };
   }
 }

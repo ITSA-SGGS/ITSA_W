@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { SampleEvent, EventCategoryType, DbEventCategory, EventStatus, EventFormData } from '../types';
 import {
   SAMPLE_TECHNICAL_EVENTS,
@@ -125,22 +126,8 @@ function mapDbEventToApp(row: any, idx: number): SampleEvent {
  * Fetches published events for the public website.
  */
 export async function getPublishedEvents(): Promise<SampleEvent[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryEvents.filter((e) => e.is_published);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('is_published', true)
-      .order('display_order', { ascending: true })
-      .order('event_date', { ascending: false });
-
-    if (error) {
-      console.warn('Supabase query failed, using in-memory fallback:', error.message);
-      return inMemoryEvents.filter((e) => e.is_published);
-    }
+    const data = await api.get<any[]>('/api/events?limit=100');
 
     if (!data || data.length === 0) {
       return inMemoryEvents.filter((e) => e.is_published);
@@ -148,7 +135,7 @@ export async function getPublishedEvents(): Promise<SampleEvent[]> {
 
     return data.map((row, i) => mapDbEventToApp(row, i));
   } catch (err) {
-    console.warn('Failed to fetch events from Supabase:', err);
+    console.warn('Failed to fetch events from API, using in-memory fallback:', err);
     return inMemoryEvents.filter((e) => e.is_published);
   }
 }
@@ -161,23 +148,8 @@ export async function getPublishedEventsByCategory(
 ): Promise<SampleEvent[]> {
   const normCat = normalizeCategory(category);
 
-  if (!isSupabaseConfigured) {
-    return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('is_published', true)
-      .eq('category', normCat)
-      .order('display_order', { ascending: true })
-      .order('event_date', { ascending: false });
-
-    if (error) {
-      console.warn(`Supabase query for category ${normCat} failed:`, error.message);
-      return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
-    }
+    const data = await api.get<any[]>(`/api/events?category=${encodeURIComponent(normCat)}&limit=100`);
 
     if (!data || data.length === 0) {
       return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
@@ -185,7 +157,7 @@ export async function getPublishedEventsByCategory(
 
     return data.map((row, i) => mapDbEventToApp(row, i));
   } catch (err) {
-    console.warn(`Failed to fetch events for category ${normCat}:`, err);
+    console.warn(`Failed to fetch events for category ${normCat} from API:`, err);
     return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
   }
 }

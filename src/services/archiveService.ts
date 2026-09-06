@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { GalleryItem, ArchiveFormData } from '../types';
 import { GALLERY_ITEMS } from '../data/mockData';
 
@@ -82,25 +83,11 @@ function mapDbArchiveToApp(row: any, idx: number): GalleryItem {
 // ============================================================================
 
 /**
- * Fetches published archive records from Supabase with graceful fallback to the 5 local photographs.
+ * Fetches published archive records from the Express API with graceful fallback to the 5 local photographs.
  */
 export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryArchive.filter((a) => a.is_published);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('archive_records')
-      .select('*')
-      .eq('is_published', true)
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn('Supabase query for archive records failed, using fallback:', error.message);
-      return inMemoryArchive.filter((a) => a.is_published);
-    }
+    const data = await api.get<any[]>('/api/archive?limit=100');
 
     if (!data || data.length === 0) {
       return inMemoryArchive.filter((a) => a.is_published);
@@ -108,7 +95,7 @@ export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
 
     return data.map((row, i) => mapDbArchiveToApp(row, i));
   } catch (err) {
-    console.warn('Failed to fetch archive records from Supabase, using mock fallback:', err);
+    console.warn('Failed to fetch archive records from API, using mock fallback:', err);
     return inMemoryArchive.filter((a) => a.is_published);
   }
 }

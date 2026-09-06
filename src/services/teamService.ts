@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { CommitteeMember, CommitteeTier, MemberFormData } from '../types';
 import {
   CORE_COMMITTEE,
@@ -76,22 +77,8 @@ function mapDbMemberToApp(row: any): CommitteeMember {
  * Fetches all active committee members for the public website.
  */
 export async function getActiveCommitteeMembers(): Promise<CommitteeMember[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryMembers.filter((m) => m.is_active);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('committee_members')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn('Supabase query for committee members failed, using fallback:', error.message);
-      return inMemoryMembers.filter((m) => m.is_active);
-    }
+    const data = await api.get<any[]>('/api/team');
 
     if (!data || data.length === 0) {
       return inMemoryMembers.filter((m) => m.is_active);
@@ -99,7 +86,7 @@ export async function getActiveCommitteeMembers(): Promise<CommitteeMember[]> {
 
     return data.map(mapDbMemberToApp);
   } catch (err) {
-    console.warn('Failed to fetch committee members from Supabase, using mock fallback:', err);
+    console.warn('Failed to fetch committee members from API, using mock fallback:', err);
     return inMemoryMembers.filter((m) => m.is_active);
   }
 }
@@ -110,23 +97,8 @@ export async function getActiveCommitteeMembers(): Promise<CommitteeMember[]> {
 export async function getActiveCommitteeMembersByTier(
   tier: CommitteeTier
 ): Promise<CommitteeMember[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('committee_members')
-      .select('*')
-      .eq('is_active', true)
-      .eq('tier', tier)
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn(`Supabase query for tier ${tier} failed, using fallback:`, error.message);
-      return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
-    }
+    const data = await api.get<any[]>(`/api/team?tier=${encodeURIComponent(tier)}`);
 
     if (!data || data.length === 0) {
       return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
@@ -134,7 +106,7 @@ export async function getActiveCommitteeMembersByTier(
 
     return data.map(mapDbMemberToApp);
   } catch (err) {
-    console.warn(`Failed to fetch tier ${tier} members, using fallback:`, err);
+    console.warn(`Failed to fetch tier ${tier} members from API, using fallback:`, err);
     return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
   }
 }
