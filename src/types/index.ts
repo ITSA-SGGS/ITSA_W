@@ -188,6 +188,19 @@ export interface SiteSetting {
 // ============================================================================
 export type AdminRole = 'SUPER_ADMIN' | 'ADMIN' | 'EDITOR';
 
+export interface SafeAdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: AdminRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  last_login_at: string | null;
+}
+
+export type AuthUser = SafeAdminUser;
+
 export interface AdminProfile {
   id: string;
   email: string;
@@ -196,6 +209,7 @@ export interface AdminProfile {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  last_login_at?: string | null;
 }
 
 export * from './database';

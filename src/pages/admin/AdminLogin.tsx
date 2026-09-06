@@ -6,7 +6,7 @@ import { Lock, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { ItsaLogo } from '../../components/ItsaLogo';
 
 export const AdminLogin: React.FC = () => {
-  const { signInWithPassword, isConfigured } = useAuth();
+  const { signInWithPassword } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -85,12 +85,6 @@ export const AdminLogin: React.FC = () => {
             </p>
           </div>
 
-          {!isConfigured && (
-            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-mono text-xs leading-relaxed">
-              <strong>Notice:</strong> Supabase environment variables are currently unconfigured. Add <code className="text-[11px] font-bold">VITE_SUPABASE_URL</code> and <code className="text-[11px] font-bold">VITE_SUPABASE_ANON_KEY</code> to your <code className="text-[11px]">.env</code> file.
-            </div>
-          )}
-
           {errorMessage && (
             <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 font-mono text-xs leading-relaxed">
               {errorMessage}
@@ -139,7 +133,7 @@ export const AdminLogin: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading || !isConfigured}
+              disabled={loading}
               className="w-full py-3.5 rounded-xl font-mono text-xs font-semibold uppercase tracking-wider bg-[#111113] text-[#F5F5F7] dark:bg-[#F5F5F7] dark:text-[#111113] hover:opacity-90 disabled:opacity-50 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE]"
             >
               {loading ? 'AUTHENTICATING...' : 'AUTHORIZE SESSION →'}
