@@ -1,7 +1,6 @@
 /**
  * ITSA Web Platform — useAuth Hook
- * Phase 5: Re-exports unified session context from AuthContext.
- * Decoupled from Supabase Auth in favor of Express HttpOnly cookie sessions.
+ * Provides Express HttpOnly cookie sessions.
  */
 
 import { useAuthContext } from '../context/AuthContext';

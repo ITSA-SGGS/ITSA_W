@@ -422,7 +422,7 @@ export const PersonModal: React.FC<PersonModalProps> = ({
           {/* Section 04: Portrait Photo Upload */}
           <div className="space-y-4">
             <div className="font-mono text-[11px] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider font-semibold border-b border-black/5 dark:border-white/5 pb-2">
-              04 // PROFILE PORTRAIT (SUPABASE STORAGE)
+              04 // PROFILE PORTRAIT
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-start">

@@ -154,7 +154,7 @@ export const UsersPage: React.FC = () => {
           <span>Secure Admin Provisioning Architecture</span>
         </div>
         <p className="text-[#6E6E73] dark:text-[#8E8E93] leading-relaxed">
-          Admin access is tied directly to PostgreSQL Row Level Security. To grant a new administrator access, invite the user via your Supabase Authentication dashboard (or Auth API), then assign their appropriate role (<code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">SUPER_ADMIN</code>, <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">ADMIN</code>, or <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">EDITOR</code>) below.
+          Admin access is tied directly to backend role-based access control (RBAC). To manage administrator access, assign an appropriate role (<code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">SUPER_ADMIN</code>, <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">ADMIN</code>, or <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">EDITOR</code>) below.
         </p>
       </div>
 

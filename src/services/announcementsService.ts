@@ -1,5 +1,5 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
+import { sanitizeUrl } from '../lib/security';
 import { Announcement, AnnouncementFormData } from '../types';
 
 let inMemoryAnnouncements: Announcement[] = [
@@ -61,21 +61,8 @@ export async function getPublishedAnnouncements(): Promise<Announcement[]> {
  * Fetches all announcements (both published and drafts) for the Admin Dashboard.
  */
 export async function getAllAdminAnnouncements(): Promise<Announcement[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn('Admin announcements fetch encountered an error, using fallback:', error.message);
-      return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
+    const data = await api.get<any[]>('/api/admin/announcements?limit=100');
 
     if (!data || data.length === 0) {
       return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -83,12 +70,10 @@ export async function getAllAdminAnnouncements(): Promise<Announcement[]> {
 
     return data.map(mapDbAnnouncementToApp);
   } catch (err) {
-    console.warn('Failed to fetch admin announcements:', err);
+    console.warn('Failed to fetch admin announcements from API, using fallback:', err);
     return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   }
 }
-
-import { sanitizeUrl } from '../lib/security';
 
 /**
  * Creates a new announcement.
@@ -102,39 +87,14 @@ export async function createAnnouncement(formData: AnnouncementFormData): Promis
   const payload = {
     title,
     message: formData.message?.trim() || null,
-    link_url: sanitizeUrl(formData.link_url),
+    link_url: sanitizeUrl(formData.link_url) || null,
     is_published: Boolean(formData.is_published),
     published_at: formData.published_at ? new Date(formData.published_at).toISOString() : new Date().toISOString(),
     expires_at: formData.expires_at ? new Date(formData.expires_at).toISOString() : null,
     display_order: Number(formData.display_order) || 0,
   };
 
-  if (!isSupabaseConfigured) {
-    const newMock: Announcement = {
-      id: `mock-ann-${Date.now()}`,
-      title: payload.title,
-      message: payload.message,
-      link_url: payload.link_url,
-      is_published: payload.is_published,
-      published_at: payload.published_at,
-      expires_at: payload.expires_at,
-      display_order: payload.display_order,
-      created_at: new Date().toISOString(),
-    };
-    inMemoryAnnouncements = [newMock, ...inMemoryAnnouncements];
-    return newMock;
-  }
-
-  const { data, error } = await (supabase
-    .from('announcements') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create announcement.');
-  }
-
+  const data = await api.post<any>('/api/admin/announcements', payload);
   return mapDbAnnouncementToApp(data);
 }
 
@@ -148,7 +108,7 @@ export async function updateAnnouncement(
   const payload: any = {};
   if (formData.title !== undefined) payload.title = formData.title.trim();
   if (formData.message !== undefined) payload.message = formData.message?.trim() || null;
-  if (formData.link_url !== undefined) payload.link_url = sanitizeUrl(formData.link_url);
+  if (formData.link_url !== undefined) payload.link_url = sanitizeUrl(formData.link_url) || null;
   if (formData.is_published !== undefined) payload.is_published = Boolean(formData.is_published);
   if (formData.published_at !== undefined) {
     payload.published_at = formData.published_at ? new Date(formData.published_at).toISOString() : null;
@@ -158,28 +118,7 @@ export async function updateAnnouncement(
   }
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
 
-  if (!isSupabaseConfigured) {
-    inMemoryAnnouncements = inMemoryAnnouncements.map((a) => {
-      if (a.id === id) {
-        return { ...a, ...payload };
-      }
-      return a;
-    });
-    const updated = inMemoryAnnouncements.find((a) => a.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('announcements') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update announcement.');
-  }
-
+  const data = await api.put<any>(`/api/admin/announcements/${encodeURIComponent(id)}`, payload);
   return mapDbAnnouncementToApp(data);
 }
 
@@ -190,24 +129,15 @@ export async function toggleAnnouncementPublished(
   id: string,
   currentStatus: boolean
 ): Promise<Announcement> {
-  return updateAnnouncement(id, { is_published: !currentStatus });
+  const data = await api.patch<any>(`/api/admin/announcements/${encodeURIComponent(id)}/publish`, {
+    is_published: !currentStatus,
+  });
+  return mapDbAnnouncementToApp(data);
 }
 
 /**
  * Deletes an announcement.
  */
 export async function deleteAnnouncement(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemoryAnnouncements = inMemoryAnnouncements.filter((a) => a.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('announcements')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete announcement.');
-  }
+  await api.delete<{ message: string }>(`/api/admin/announcements/${encodeURIComponent(id)}`);
 }

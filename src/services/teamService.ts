@@ -1,4 +1,3 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
 import { CommitteeMember, CommitteeTier, MemberFormData } from '../types';
 import {
@@ -119,31 +118,8 @@ export async function getActiveCommitteeMembersByTier(
  * Fetches all members (including inactive members) for the Admin Dashboard.
  */
 export async function getAllAdminMembers(): Promise<CommitteeMember[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('committee_members')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn('Admin members fetch encountered an error, using fallback:', error.message);
-      return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    if (!data || data.length === 0) {
-      return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map(mapDbMemberToApp);
-  } catch (err) {
-    console.warn('Failed to fetch admin members:', err);
-    return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/team?limit=100');
+  return (data || []).map(mapDbMemberToApp);
 }
 
 /**
@@ -164,36 +140,7 @@ export async function createMember(formData: MemberFormData): Promise<CommitteeM
     is_active: Boolean(formData.is_active),
   };
 
-  if (!isSupabaseConfigured) {
-    const newMock: CommitteeMember = {
-      id: `mock-member-${Date.now()}`,
-      name: payload.name,
-      position: payload.position,
-      tier: payload.tier,
-      domain: payload.domain,
-      department: payload.department || undefined,
-      photo: payload.photo_url || undefined,
-      photo_url: payload.photo_url || undefined,
-      linkedin_url: payload.linkedin_url || undefined,
-      github_url: payload.github_url || undefined,
-      tenure_year: payload.tenure_year,
-      display_order: payload.display_order,
-      is_active: payload.is_active,
-    };
-    inMemoryMembers = [...inMemoryMembers, newMock];
-    return newMock;
-  }
-
-  const { data, error } = await (supabase
-    .from('committee_members') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create committee member.');
-  }
-
+  const data = await api.post<any>('/api/admin/team', payload);
   return mapDbMemberToApp(data);
 }
 
@@ -217,32 +164,7 @@ export async function updateMember(
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
   if (formData.is_active !== undefined) payload.is_active = Boolean(formData.is_active);
 
-  if (!isSupabaseConfigured) {
-    inMemoryMembers = inMemoryMembers.map((m) => {
-      if (m.id === id) {
-        return {
-          ...m,
-          ...payload,
-          photo: payload.photo_url || m.photo,
-        };
-      }
-      return m;
-    });
-    const updated = inMemoryMembers.find((m) => m.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('committee_members') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update committee member.');
-  }
-
+  const data = await api.put<any>(`/api/admin/team/${id}`, payload);
   return mapDbMemberToApp(data);
 }
 
@@ -253,30 +175,33 @@ export async function toggleMemberActive(
   id: string,
   currentStatus: boolean
 ): Promise<CommitteeMember> {
-  return updateMember(id, { is_active: !currentStatus });
+  const data = await api.patch<any>(`/api/admin/team/${id}/active`, { is_active: !currentStatus });
+  return mapDbMemberToApp(data);
 }
 
 /**
  * Permanently deletes a committee member record.
  */
 export async function deleteMember(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemoryMembers = inMemoryMembers.filter((m) => m.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('committee_members')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete committee member.');
-  }
+  await api.delete(`/api/admin/team/${id}`);
 }
 
 /**
- * Uploads a profile portrait to the 'team-photos' Supabase Storage bucket.
+ * Media upload response type matching backend StorageUploadResult.
+ */
+export interface MediaUploadResult {
+  url: string;
+  key: string;
+  bucket: string;
+  size: number;
+  mimeType: string;
+  category: string;
+  createdAt: string;
+}
+
+/**
+ * Uploads a team member portrait using the backend Express media API.
+ * Permitted for ADMIN and SUPER_ADMIN.
  */
 export async function uploadMemberPhoto(file: File): Promise<string> {
   const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
@@ -284,32 +209,14 @@ export async function uploadMemberPhoto(file: File): Promise<string> {
     throw new Error('Unsupported image format. Please upload JPEG, PNG, WebP, or AVIF.');
   }
 
+  // Enforce 5MB limit
   if (file.size > 5 * 1024 * 1024) {
     throw new Error('Photo size exceeds the 5MB limit.');
   }
 
-  if (!isSupabaseConfigured) {
-    return URL.createObjectURL(file);
-  }
+  const formData = new FormData();
+  formData.append('file', file);
 
-  const fileExt = file.name.split('.').pop() || 'jpg';
-  const cleanFileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-  const filePath = `portraits/${cleanFileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('team-photos')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
-
-  if (uploadError) {
-    throw new Error(`Storage upload failed: ${uploadError.message}`);
-  }
-
-  const { data } = supabase.storage
-    .from('team-photos')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  const res = await api.post<MediaUploadResult>('/api/admin/media/upload/team', formData);
+  return res.url;
 }

@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { AdminProfile, AdminRole } from '../types';
 
 let inMemoryAdminUsers: AdminProfile[] = [
@@ -44,27 +44,15 @@ function mapDbAdminProfileToApp(row: any): AdminProfile {
 }
 
 // ============================================================================
-// ADMINISTRATIVE READ & MUTATION QUERIES (Restricted to SUPER_ADMIN via RLS)
+// ADMINISTRATIVE READ & MUTATION QUERIES (Restricted to SUPER_ADMIN / ADMIN)
 // ============================================================================
 
 /**
  * Fetches all admin profile records for user management.
  */
 export async function getAllAdminProfiles(): Promise<AdminProfile[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryAdminUsers];
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('admin_profiles')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn('Supabase admin_profiles query error, using fallback:', error.message);
-      return [...inMemoryAdminUsers];
-    }
+    const data = await api.get<any[]>('/api/admin/users');
 
     if (!data || data.length === 0) {
       return [...inMemoryAdminUsers];
@@ -72,9 +60,31 @@ export async function getAllAdminProfiles(): Promise<AdminProfile[]> {
 
     return data.map(mapDbAdminProfileToApp);
   } catch (err) {
-    console.warn('Failed to fetch admin profiles from Supabase:', err);
+    console.warn('Failed to fetch admin profiles from API, using fallback:', err);
     return [...inMemoryAdminUsers];
   }
+}
+
+/**
+ * Invites / creates a new administrator account.
+ */
+export async function inviteAdminUser(data: {
+  email: string;
+  password: string;
+  full_name?: string | null;
+  role?: AdminRole;
+  is_active?: boolean;
+}): Promise<AdminProfile> {
+  const payload = {
+    email: data.email.trim(),
+    password: data.password,
+    full_name: data.full_name?.trim() || null,
+    role: data.role || 'ADMIN',
+    is_active: data.is_active ?? true,
+  };
+
+  const res = await api.post<any>('/api/admin/users/invite', payload);
+  return mapDbAdminProfileToApp(res);
 }
 
 /**
@@ -84,56 +94,13 @@ export async function updateAdminProfile(
   id: string,
   data: { role?: AdminRole; is_active?: boolean; full_name?: string }
 ): Promise<AdminProfile> {
-  // Safety guard: ensure we don't deactivate or demote the last SUPER_ADMIN
-  const currentProfiles = await getAllAdminProfiles();
-  const target = currentProfiles.find((p) => p.id === id);
-  if (target?.role === 'SUPER_ADMIN') {
-    const activeSuperAdmins = currentProfiles.filter(
-      (p) => p.role === 'SUPER_ADMIN' && p.is_active && p.id !== id
-    );
-    if ((data.is_active === false || (data.role && data.role !== 'SUPER_ADMIN')) && activeSuperAdmins.length === 0) {
-      throw new Error(
-        'Cannot deactivate or demote the only remaining active SUPER_ADMIN account.'
-      );
-    }
-  }
-
-  if (!isSupabaseConfigured) {
-    inMemoryAdminUsers = inMemoryAdminUsers.map((u) => {
-      if (u.id === id) {
-        return {
-          ...u,
-          role: data.role || u.role,
-          is_active: data.is_active !== undefined ? data.is_active : u.is_active,
-          full_name: data.full_name !== undefined ? data.full_name : u.full_name,
-          updated_at: new Date().toISOString(),
-        };
-      }
-      return u;
-    });
-    const updated = inMemoryAdminUsers.find((u) => u.id === id)!;
-    return updated;
-  }
-
-  const payload: any = {
-    updated_at: new Date().toISOString(),
-  };
+  const payload: any = {};
   if (data.role !== undefined) payload.role = data.role;
   if (data.is_active !== undefined) payload.is_active = data.is_active;
-  if (data.full_name !== undefined) payload.full_name = data.full_name;
+  if (data.full_name !== undefined) payload.full_name = data.full_name?.trim() || null;
 
-  const { data: updatedDb, error } = await (supabase
-    .from('admin_profiles') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update admin profile.');
-  }
-
-  return mapDbAdminProfileToApp(updatedDb);
+  const res = await api.put<any>(`/api/admin/users/${encodeURIComponent(id)}`, payload);
+  return mapDbAdminProfileToApp(res);
 }
 
 /**
@@ -143,35 +110,15 @@ export async function toggleAdminActive(
   id: string,
   currentStatus: boolean
 ): Promise<AdminProfile> {
-  return updateAdminProfile(id, { is_active: !currentStatus });
+  const res = await api.patch<any>(`/api/admin/users/${encodeURIComponent(id)}/active`, {
+    is_active: !currentStatus,
+  });
+  return mapDbAdminProfileToApp(res);
 }
 
 /**
- * Revokes admin authorization by deleting the admin_profiles record.
+ * Revokes admin authorization by deleting the admin user record.
  */
 export async function revokeAdminProfile(id: string): Promise<void> {
-  const currentProfiles = await getAllAdminProfiles();
-  const target = currentProfiles.find((p) => p.id === id);
-  if (target?.role === 'SUPER_ADMIN') {
-    const remainingSuperAdmins = currentProfiles.filter(
-      (p) => p.role === 'SUPER_ADMIN' && p.is_active && p.id !== id
-    );
-    if (remainingSuperAdmins.length === 0) {
-      throw new Error('Cannot revoke access for the last remaining SUPER_ADMIN account.');
-    }
-  }
-
-  if (!isSupabaseConfigured) {
-    inMemoryAdminUsers = inMemoryAdminUsers.filter((u) => u.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('admin_profiles')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to revoke admin profile.');
-  }
+  await api.delete<{ message: string }>(`/api/admin/users/${encodeURIComponent(id)}`);
 }

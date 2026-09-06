@@ -211,5 +211,3 @@ export interface AdminProfile {
   updated_at: string;
   last_login_at?: string | null;
 }
-
-export * from './database';

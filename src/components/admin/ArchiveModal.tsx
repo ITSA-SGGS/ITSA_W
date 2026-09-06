@@ -160,7 +160,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
           {/* Section 01: Media Assets */}
           <div className="space-y-4">
             <div className="font-mono text-[11px] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider font-semibold border-b border-black/5 dark:border-white/5 pb-2">
-              01 // MEDIA ASSETS (SUPABASE STORAGE)
+              01 // MEDIA ASSETS
             </div>
 
             <div className="space-y-4">
