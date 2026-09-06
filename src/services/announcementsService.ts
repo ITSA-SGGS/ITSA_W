@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
 import { Announcement, AnnouncementFormData } from '../types';
 
 let inMemoryAnnouncements: Announcement[] = [
@@ -38,25 +39,8 @@ function mapDbAnnouncementToApp(row: any): Announcement {
  * Fetches published and active announcements for the public website.
  */
 export async function getPublishedAnnouncements(): Promise<Announcement[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryAnnouncements.filter((a) => a.is_published);
-  }
-
   try {
-    const nowIso = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .eq('is_published', true)
-      .or(`published_at.is.null,published_at.lte.${nowIso}`)
-      .or(`expires_at.is.null,expires_at.gte.${nowIso}`)
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn('Supabase announcements query failed, using fallback:', error.message);
-      return inMemoryAnnouncements.filter((a) => a.is_published);
-    }
+    const data = await api.get<any[]>('/api/announcements/active');
 
     if (!data || data.length === 0) {
       return inMemoryAnnouncements.filter((a) => a.is_published);
@@ -64,7 +48,7 @@ export async function getPublishedAnnouncements(): Promise<Announcement[]> {
 
     return data.map(mapDbAnnouncementToApp);
   } catch (err) {
-    console.warn('Failed to fetch announcements from Supabase:', err);
+    console.warn('Failed to fetch announcements from API, using fallback:', err);
     return inMemoryAnnouncements.filter((a) => a.is_published);
   }
 }

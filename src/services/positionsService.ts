@@ -1,4 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { api } from '../lib/api';
+import { getActiveCommitteeMembers } from './teamService';
 import { Position, PositionFormData, CommitteeTier } from '../types';
 
 // Initial in-memory positions fallback derived from official ITSA structure
@@ -97,22 +99,8 @@ export async function getAllAdminPositions(): Promise<Position[]> {
  * Fetches active positions for organizational dropdowns and suggestions.
  */
 export async function getActivePositions(): Promise<Position[]> {
-  if (!isSupabaseConfigured) {
-    return inMemoryPositions.filter((p) => p.is_active);
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('positions')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true })
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.warn('Supabase active positions query failed:', error.message);
-      return inMemoryPositions.filter((p) => p.is_active);
-    }
+    const data = await api.get<any[]>('/api/positions');
 
     if (!data || data.length === 0) {
       return inMemoryPositions.filter((p) => p.is_active);
@@ -120,7 +108,7 @@ export async function getActivePositions(): Promise<Position[]> {
 
     return data.map(mapDbPositionToApp);
   } catch (err) {
-    console.warn('Failed to fetch active positions:', err);
+    console.warn('Failed to fetch active positions from API:', err);
     return inMemoryPositions.filter((p) => p.is_active);
   }
 }
@@ -129,8 +117,18 @@ export async function getActivePositions(): Promise<Position[]> {
  * Fetches active positions by specific tier.
  */
 export async function getActivePositionsByTier(tier: CommitteeTier): Promise<Position[]> {
-  const allActive = await getActivePositions();
-  return allActive.filter((p) => p.tier === tier);
+  try {
+    const data = await api.get<any[]>(`/api/positions?tier=${encodeURIComponent(tier)}`);
+
+    if (!data || data.length === 0) {
+      return inMemoryPositions.filter((p) => p.is_active && p.tier === tier);
+    }
+
+    return data.map(mapDbPositionToApp);
+  } catch (err) {
+    console.warn(`Failed to fetch positions for tier ${tier} from API:`, err);
+    return inMemoryPositions.filter((p) => p.is_active && p.tier === tier);
+  }
 }
 
 // ============================================================================
@@ -143,26 +141,12 @@ export async function getActivePositionsByTier(tier: CommitteeTier): Promise<Pos
 export async function checkPositionInUse(positionName: string): Promise<boolean> {
   const normName = positionName.trim().toLowerCase();
 
-  if (!isSupabaseConfigured) {
-    // In mock mode, check in-memory members
-    return true; // Conservative safety
-  }
-
   try {
-    const { count, error } = await supabase
-      .from('committee_members')
-      .select('*', { count: 'exact', head: true })
-      .ilike('position', normName);
-
-    if (error) {
-      console.warn('Failed to check position reference count:', error.message);
-      return true; // Conservative safety
-    }
-
-    return (count ?? 0) > 0;
+    const members = await getActiveCommitteeMembers();
+    return members.some((m) => m.position?.trim().toLowerCase() === normName);
   } catch (err) {
-    console.warn('Reference check error:', err);
-    return true;
+    console.warn('Failed to check position reference count:', err);
+    return false;
   }
 }
 
