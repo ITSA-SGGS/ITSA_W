@@ -170,7 +170,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                   <img
                     src={formData.image_url}
                     alt="Archive preview"
-                    className="w-full h-full object-cover grayscale contrast-110"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-[#6E6E73] space-y-2">

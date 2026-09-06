@@ -12,6 +12,10 @@ import { generalRateLimiter } from './middleware/rateLimit.middleware.js';
 export function createApp(): Express {
   const app = express();
 
+  // 0. Trust upstream reverse proxy (Cloudflare, Render, Railway, Nginx)
+  // Ensures req.ip and req.protocol accurately reflect client connection for rate limiters & security
+  app.set('trust proxy', 1);
+
   // 1. Security Headers
   app.use(helmet());
 

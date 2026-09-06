@@ -1,46 +1,5 @@
 import { api } from '../lib/api';
 import { CommitteeMember, CommitteeTier, MemberFormData } from '../types';
-import {
-  CORE_COMMITTEE,
-  TY_LEADERSHIP,
-  SY_COORDINATOR_GROUPS,
-  FACULTY_DIGNITARIES,
-} from '../data/mockData';
-
-// Flattened initial fallback member roster
-let inMemoryMembers: CommitteeMember[] = [
-  ...CORE_COMMITTEE.map((m, idx) => ({
-    ...m,
-    photo_url: m.photo,
-    display_order: idx + 1,
-    is_active: true,
-  })),
-  ...TY_LEADERSHIP.map((m, idx) => ({
-    ...m,
-    photo_url: m.photo,
-    display_order: idx + 6,
-    is_active: true,
-  })),
-  ...SY_COORDINATOR_GROUPS.flatMap((g) => g.members).map((m, idx) => ({
-    ...m,
-    photo_url: m.photo,
-    display_order: idx + 18,
-    is_active: true,
-  })),
-  ...FACULTY_DIGNITARIES.map((f, idx) => ({
-    id: f.name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-    name: f.name,
-    position: f.position,
-    photo: f.photo,
-    photo_url: f.photo,
-    tier: 'FACULTY' as const,
-    domain: 'OVERALL',
-    department: f.department,
-    display_order: idx + 33,
-    is_active: true,
-  })),
-];
-
 import { sanitizeUrl } from '../lib/security';
 
 /**
@@ -78,15 +37,10 @@ function mapDbMemberToApp(row: any): CommitteeMember {
 export async function getActiveCommitteeMembers(): Promise<CommitteeMember[]> {
   try {
     const data = await api.get<any[]>('/api/team');
-
-    if (!data || data.length === 0) {
-      return inMemoryMembers.filter((m) => m.is_active);
-    }
-
-    return data.map(mapDbMemberToApp);
+    return (data || []).map(mapDbMemberToApp);
   } catch (err) {
-    console.warn('Failed to fetch committee members from API, using mock fallback:', err);
-    return inMemoryMembers.filter((m) => m.is_active);
+    console.error('Failed to fetch committee members from API:', err);
+    return [];
   }
 }
 
@@ -98,15 +52,10 @@ export async function getActiveCommitteeMembersByTier(
 ): Promise<CommitteeMember[]> {
   try {
     const data = await api.get<any[]>(`/api/team?tier=${encodeURIComponent(tier)}`);
-
-    if (!data || data.length === 0) {
-      return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
-    }
-
-    return data.map(mapDbMemberToApp);
+    return (data || []).map(mapDbMemberToApp);
   } catch (err) {
-    console.warn(`Failed to fetch tier ${tier} members from API, using fallback:`, err);
-    return inMemoryMembers.filter((m) => m.is_active && m.tier === tier);
+    console.error(`Failed to fetch tier ${tier} members from API:`, err);
+    return [];
   }
 }
 

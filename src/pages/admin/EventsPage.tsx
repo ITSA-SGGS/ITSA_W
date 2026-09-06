@@ -19,6 +19,7 @@ import {
   MapPin,
   ArrowUpDown,
   CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 
 export const EventsPage: React.FC = () => {
@@ -109,6 +110,10 @@ export const EventsPage: React.FC = () => {
   const handleTogglePublish = async (evt: SampleEvent) => {
     try {
       const nextState = !evt.is_published;
+      if (nextState && (!evt.cover_image_url || !evt.cover_image_url.trim())) {
+        addToast('error', `Cannot publish "${evt.title}": A cover image is required for published events.`);
+        return;
+      }
       await togglePublish(evt.id, Boolean(evt.is_published));
       addToast(
         'info',
@@ -261,9 +266,20 @@ export const EventsPage: React.FC = () => {
               {/* Title & Description */}
               <td className="px-5 py-4 min-w-[220px]">
                 <div className="space-y-0.5">
-                  <span className="font-display font-semibold text-sm text-[#111113] dark:text-[#F5F5F7] block">
-                    {evt.title}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-display font-semibold text-sm text-[#111113] dark:text-[#F5F5F7]">
+                      {evt.title}
+                    </span>
+                    {isPublished && (!evt.cover_image_url || !evt.cover_image_url.trim()) && (
+                      <span
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                        title="Missing cover image. This event is published in CMS but hidden from the public slideshow until a cover image is uploaded."
+                      >
+                        <AlertCircle className="w-2.5 h-2.5 shrink-0" />
+                        <span>Missing Media</span>
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[11px] text-[#6E6E73] dark:text-[#8E8E93] line-clamp-1">
                     {evt.description || 'No description provided.'}
                   </span>

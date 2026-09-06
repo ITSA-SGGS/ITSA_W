@@ -62,7 +62,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ member, onClose }) =
                 src={member.photo_url || member.photo}
                 alt={member.name}
                 onError={() => setImgError(true)}
-                className="w-full h-full object-cover grayscale contrast-110 transition-transform duration-500 hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-black/5 to-black/10 dark:from-white/5 dark:to-white/10">

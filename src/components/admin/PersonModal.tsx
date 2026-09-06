@@ -432,7 +432,7 @@ export const PersonModal: React.FC<PersonModalProps> = ({
                   <img
                     src={formData.photo_url}
                     alt="Member portrait"
-                    className="w-full h-full object-cover grayscale"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center">

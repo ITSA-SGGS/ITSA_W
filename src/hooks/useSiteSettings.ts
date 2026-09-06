@@ -19,9 +19,9 @@ export function useSiteSettings() {
       address: 'Department of Information Technology, SGGSIE&T, Vishnupuri, Nanded - 431606',
     },
     social_links: {
-      linkedin: 'https://linkedin.com/company/itsa-sggsiet',
-      github: 'https://github.com/itsa-sggsiet',
-      instagram: 'https://instagram.com/itsa_sggsiet',
+      linkedin: 'https://www.linkedin.com/company/itsa-sggs/home/',
+      github: 'https://github.com/ITSA-SGGS',
+      instagram: 'https://www.instagram.com/itsasggs/',
     },
   });
   const [loading, setLoading] = useState<boolean>(true);

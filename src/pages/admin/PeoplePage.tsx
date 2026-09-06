@@ -290,7 +290,7 @@ export const PeoplePage: React.FC = () => {
                       <img
                         src={photoSrc}
                         alt={member.name}
-                        className="w-full h-full object-cover grayscale"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
                       <span className="font-display font-semibold text-xs text-[#111113] dark:text-[#F5F5F7]">

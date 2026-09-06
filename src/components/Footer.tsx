@@ -2,11 +2,27 @@ import React from 'react';
 import { Mail, ArrowUp } from 'lucide-react';
 import { GithubIcon, LinkedinIcon, InstagramIcon } from './Icons';
 import { useTheme } from '../hooks/useTheme';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import { ItsaLogo } from './ItsaLogo';
 
 export const Footer: React.FC = () => {
   const { theme } = useTheme();
+  const { settings } = useSiteSettings();
   const isDark = theme === 'dark';
+
+  const githubUrl =
+    settings?.social_links?.github || 'https://github.com/ITSA-SGGS';
+
+  const linkedinUrl =
+    settings?.social_links?.linkedin ||
+    'https://www.linkedin.com/company/itsa-sggs/home/';
+
+  const instagramUrl =
+    settings?.social_links?.instagram ||
+    'https://www.instagram.com/itsasggs/';
+
+  const contactEmail =
+    settings?.contact_info?.email || 'itsa@sggs.ac.in';
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -39,34 +55,34 @@ export const Footer: React.FC = () => {
             </span>
             <div className="flex flex-col space-y-2.5">
               <a
-                href="https://github.com"
+                href={githubUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <GithubIcon className="w-4 h-4" />
                 <span>GitHub · /itsa-sggs</span>
               </a>
               <a
-                href="https://linkedin.com"
+                href={linkedinUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <LinkedinIcon className="w-4 h-4" />
                 <span>LinkedIn · ITSA SGGSIE&amp;T</span>
               </a>
               <a
-                href="https://instagram.com"
+                href={instagramUrl}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <InstagramIcon className="w-4 h-4" />
                 <span>Instagram · @itsa_sggsiet</span>
               </a>
               <a
-                href="mailto:itsa@sggs.ac.in"
+                href={`mailto:${contactEmail}`}
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />

@@ -2,20 +2,6 @@ import { api } from '../lib/api';
 import { sanitizeUrl } from '../lib/security';
 import { Announcement, AnnouncementFormData } from '../types';
 
-let inMemoryAnnouncements: Announcement[] = [
-  {
-    id: 'ann-1',
-    title: 'ITSA Academic Tenure & Technical Session Registrations Open',
-    message: 'Official registrations for departmental symposium tracks, algorithmic sprints, and sports leagues are now live.',
-    link_url: 'https://forms.google.com',
-    is_published: true,
-    published_at: new Date().toISOString(),
-    expires_at: null,
-    display_order: 1,
-    created_at: new Date().toISOString(),
-  },
-];
-
 function mapDbAnnouncementToApp(row: any): Announcement {
   return {
     id: row.id,
@@ -41,15 +27,10 @@ function mapDbAnnouncementToApp(row: any): Announcement {
 export async function getPublishedAnnouncements(): Promise<Announcement[]> {
   try {
     const data = await api.get<any[]>('/api/announcements/active');
-
-    if (!data || data.length === 0) {
-      return inMemoryAnnouncements.filter((a) => a.is_published);
-    }
-
-    return data.map(mapDbAnnouncementToApp);
+    return (data || []).map(mapDbAnnouncementToApp);
   } catch (err) {
-    console.warn('Failed to fetch announcements from API, using fallback:', err);
-    return inMemoryAnnouncements.filter((a) => a.is_published);
+    console.error('Failed to fetch announcements from API:', err);
+    return [];
   }
 }
 
@@ -61,18 +42,8 @@ export async function getPublishedAnnouncements(): Promise<Announcement[]> {
  * Fetches all announcements (both published and drafts) for the Admin Dashboard.
  */
 export async function getAllAdminAnnouncements(): Promise<Announcement[]> {
-  try {
-    const data = await api.get<any[]>('/api/admin/announcements?limit=100');
-
-    if (!data || data.length === 0) {
-      return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map(mapDbAnnouncementToApp);
-  } catch (err) {
-    console.warn('Failed to fetch admin announcements from API, using fallback:', err);
-    return [...inMemoryAnnouncements].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/announcements?limit=100');
+  return (data || []).map(mapDbAnnouncementToApp);
 }
 
 /**

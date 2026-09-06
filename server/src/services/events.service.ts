@@ -1,6 +1,6 @@
 import { eventsRepository, PublicEventsFilter, AdminEventsFilter } from '../repositories/events.repository.js';
 import { EventRow, EventCategory, EventStatus } from '../types/database.js';
-import { NotFoundError } from '../utils/errors.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 
 export class EventsService {
   public async getPublicEvents(filters: PublicEventsFilter = {}): Promise<EventRow[]> {
@@ -35,6 +35,9 @@ export class EventsService {
     is_featured?: boolean;
     display_order?: number;
   }): Promise<EventRow> {
+    if (data.is_published && (!data.cover_image_url || !data.cover_image_url.trim())) {
+      throw new ValidationError('A cover image is required for published events.');
+    }
     return eventsRepository.create(data);
   }
 
@@ -42,6 +45,11 @@ export class EventsService {
     const existing = await eventsRepository.findById(id);
     if (!existing) {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
+    }
+    const willBePublished = data.is_published !== undefined ? data.is_published : existing.is_published;
+    const finalCover = data.cover_image_url !== undefined ? data.cover_image_url : existing.cover_image_url;
+    if (willBePublished && (!finalCover || !finalCover.trim())) {
+      throw new ValidationError('A cover image is required for published events.');
     }
     const updated = await eventsRepository.update(id, data);
     return updated!;
@@ -51,6 +59,10 @@ export class EventsService {
     const existing = await eventsRepository.findById(id);
     if (!existing) {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
+    }
+    const targetState = isPublished !== undefined ? isPublished : !existing.is_published;
+    if (targetState && (!existing.cover_image_url || !existing.cover_image_url.trim())) {
+      throw new ValidationError('A cover image is required for published events.');
     }
     const updated = await eventsRepository.togglePublish(id, isPublished);
     return updated!;

@@ -1,47 +1,5 @@
 import { api } from '../lib/api';
-import { SampleEvent, EventCategoryType, DbEventCategory, EventStatus, EventFormData } from '../types';
-import {
-  SAMPLE_TECHNICAL_EVENTS,
-  SAMPLE_SPORTS_EVENTS,
-  SAMPLE_CULTURAL_EVENTS,
-} from '../data/mockData';
-
-const ALL_MOCK_EVENTS: Record<string, SampleEvent[]> = {
-  TECHNICAL: SAMPLE_TECHNICAL_EVENTS,
-  'TECHNICAL EVENTS': SAMPLE_TECHNICAL_EVENTS,
-  SPORTS: SAMPLE_SPORTS_EVENTS,
-  'SPORTS EVENTS': SAMPLE_SPORTS_EVENTS,
-  CULTURAL: SAMPLE_CULTURAL_EVENTS,
-  'CULTURAL EVENTS': SAMPLE_CULTURAL_EVENTS,
-};
-
-// In-memory mock store for local development fallback
-let inMemoryEvents: SampleEvent[] = [
-  ...SAMPLE_TECHNICAL_EVENTS.map((e, idx) => ({
-    ...e,
-    category: 'TECHNICAL' as DbEventCategory,
-    status: 'UPCOMING' as EventStatus,
-    is_published: true,
-    is_featured: idx === 0,
-    display_order: idx + 1,
-  })),
-  ...SAMPLE_SPORTS_EVENTS.map((e, idx) => ({
-    ...e,
-    category: 'SPORTS' as DbEventCategory,
-    status: 'UPCOMING' as EventStatus,
-    is_published: true,
-    is_featured: false,
-    display_order: idx + 5,
-  })),
-  ...SAMPLE_CULTURAL_EVENTS.map((e, idx) => ({
-    ...e,
-    category: 'CULTURAL' as DbEventCategory,
-    status: 'UPCOMING' as EventStatus,
-    is_published: true,
-    is_featured: false,
-    display_order: idx + 9,
-  })),
-];
+import { SampleEvent, EventCategoryType, DbEventCategory, EventFormData } from '../types';
 
 /**
  * Media upload response type matching backend StorageUploadResult.
@@ -160,15 +118,10 @@ function mapDbEventToApp(row: any, idx: number): SampleEvent {
 export async function getPublishedEvents(): Promise<SampleEvent[]> {
   try {
     const data = await api.get<any[]>('/api/events?limit=100');
-
-    if (!data || data.length === 0) {
-      return inMemoryEvents.filter((e) => e.is_published);
-    }
-
-    return data.map((row, i) => mapDbEventToApp(row, i));
+    return (data || []).map((row, i) => mapDbEventToApp(row, i));
   } catch (err) {
-    console.warn('Failed to fetch events from API, using in-memory fallback:', err);
-    return inMemoryEvents.filter((e) => e.is_published);
+    console.error('Failed to fetch events from API:', err);
+    return [];
   }
 }
 
@@ -182,15 +135,10 @@ export async function getPublishedEventsByCategory(
 
   try {
     const data = await api.get<any[]>(`/api/events?category=${encodeURIComponent(normCat)}&limit=100`);
-
-    if (!data || data.length === 0) {
-      return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
-    }
-
-    return data.map((row, i) => mapDbEventToApp(row, i));
+    return (data || []).map((row, i) => mapDbEventToApp(row, i));
   } catch (err) {
-    console.warn(`Failed to fetch events for category ${normCat} from API:`, err);
-    return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
+    console.error(`Failed to fetch events for category ${normCat} from API:`, err);
+    return [];
   }
 }
 

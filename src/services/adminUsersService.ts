@@ -1,36 +1,6 @@
 import { api } from '../lib/api';
 import { AdminProfile, AdminRole } from '../types';
 
-let inMemoryAdminUsers: AdminProfile[] = [
-  {
-    id: 'user-super-1',
-    email: 'admin@sggs.ac.in',
-    full_name: 'Lead Department Administrator',
-    role: 'SUPER_ADMIN',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'user-admin-1',
-    email: 'itsa.council@sggs.ac.in',
-    full_name: 'ITSA Executive Council',
-    role: 'ADMIN',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'user-editor-1',
-    email: 'media.desk@sggs.ac.in',
-    full_name: 'Editorial & Publicity Desk',
-    role: 'EDITOR',
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
 function mapDbAdminProfileToApp(row: any): AdminProfile {
   return {
     id: row.id,
@@ -53,15 +23,10 @@ function mapDbAdminProfileToApp(row: any): AdminProfile {
 export async function getAllAdminProfiles(): Promise<AdminProfile[]> {
   try {
     const data = await api.get<any[]>('/api/admin/users');
-
-    if (!data || data.length === 0) {
-      return [...inMemoryAdminUsers];
-    }
-
-    return data.map(mapDbAdminProfileToApp);
+    return (data || []).map(mapDbAdminProfileToApp);
   } catch (err) {
-    console.warn('Failed to fetch admin profiles from API, using fallback:', err);
-    return [...inMemoryAdminUsers];
+    console.error('Failed to fetch admin profiles from API:', err);
+    return [];
   }
 }
 

@@ -1,6 +1,5 @@
 import { api } from '../lib/api';
 import { GalleryItem, ArchiveFormData } from '../types';
-import { GALLERY_ITEMS } from '../data/mockData';
 
 /**
  * Media upload response type matching backend StorageUploadResult.
@@ -71,21 +70,6 @@ export function resolveArchiveImageUrl(rawUrl: string | null | undefined): strin
   }
 }
 
-// In-memory fallback representation for the 5 authentic ITSA archive photographs
-let inMemoryArchive: GalleryItem[] = GALLERY_ITEMS.map((item, idx) => {
-  const resolved = resolveArchiveImageUrl(item.image);
-  return {
-    ...item,
-    image: resolved,
-    image_url: resolved,
-    event_name: 'ITSA Departmental Assembly',
-    year: '2025–2026',
-    display_order: idx + 1,
-    is_published: true,
-    created_at: new Date().toISOString(),
-  };
-});
-
 function mapDbArchiveToApp(row: any, idx: number): GalleryItem {
   const indexNum = row.display_order ? String(row.display_order).padStart(2, '0') : String(idx + 1).padStart(2, '0');
   const resolved = resolveArchiveImageUrl(row.image_url);
@@ -114,20 +98,15 @@ function mapDbArchiveToApp(row: any, idx: number): GalleryItem {
 // ============================================================================
 
 /**
- * Fetches published archive records from the Express API with graceful fallback to the 5 local photographs.
+ * Fetches published archive records from the Express API.
  */
 export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
   try {
     const data = await api.get<any[]>('/api/archive?limit=100');
-
-    if (!data || data.length === 0) {
-      return inMemoryArchive.filter((a) => a.is_published);
-    }
-
-    return data.map((row, i) => mapDbArchiveToApp(row, i));
+    return (data || []).map((row, i) => mapDbArchiveToApp(row, i));
   } catch (err) {
-    console.warn('Failed to fetch archive records from API, using mock fallback:', err);
-    return inMemoryArchive.filter((a) => a.is_published);
+    console.error('Failed to fetch archive records from API:', err);
+    return [];
   }
 }
 
@@ -139,18 +118,8 @@ export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
  * Fetches all archive records (both published and drafts) for the Admin Dashboard.
  */
 export async function getAllAdminArchiveRecords(): Promise<GalleryItem[]> {
-  try {
-    const data = await api.get<any[]>('/api/admin/archive?limit=100');
-
-    if (!data || data.length === 0) {
-      return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map((row, i) => mapDbArchiveToApp(row, i));
-  } catch (err) {
-    console.warn('Failed to fetch admin archive records from API, using fallback:', err);
-    return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/archive?limit=100');
+  return (data || []).map((row, i) => mapDbArchiveToApp(row, i));
 }
 
 /**

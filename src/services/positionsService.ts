@@ -2,49 +2,6 @@ import { api } from '../lib/api';
 import { getActiveCommitteeMembers } from './teamService';
 import { Position, PositionFormData, CommitteeTier } from '../types';
 
-// Initial in-memory positions fallback derived from official ITSA structure
-let inMemoryPositions: Position[] = [
-  // Core
-  { id: 'pos-1', name: 'President', tier: 'CORE', domain: 'OVERALL', description: 'Leads the executive committee and overall organization operations.', display_order: 1, is_active: true },
-  { id: 'pos-2', name: 'Vice President', tier: 'CORE', domain: 'OVERALL', description: 'Assists the President and oversees committee portfolio alignment.', display_order: 2, is_active: true },
-  { id: 'pos-3', name: 'Treasurer', tier: 'CORE', domain: 'FINANCE', description: 'Directs the treasury, budgets, sponsorships, and fiscal logistics.', display_order: 3, is_active: true },
-  { id: 'pos-4', name: 'Vice Treasurer', tier: 'CORE', domain: 'FINANCE', description: 'Assists in financial accounting, auditing, and procurement records.', display_order: 4, is_active: true },
-
-  // TY Leadership
-  { id: 'pos-5', name: 'Technical Head', tier: 'TY_LEADERSHIP', domain: 'TECHNICAL', description: 'Oversees technical development, hackathons, and server operations.', display_order: 5, is_active: true },
-  { id: 'pos-6', name: 'Technical Co-Head', tier: 'TY_LEADERSHIP', domain: 'TECHNICAL', description: 'Co-leads technical symposiums, code reviews, and workshops.', display_order: 6, is_active: true },
-  { id: 'pos-7', name: 'Event Operations Head', tier: 'TY_LEADERSHIP', domain: 'OPERATIONS', description: 'Directs logistics, venue setups, permissions, and event scheduling.', display_order: 7, is_active: true },
-  { id: 'pos-8', name: 'Event Operations Co-Head', tier: 'TY_LEADERSHIP', domain: 'OPERATIONS', description: 'Assists with operational execution, crowd flow, and stagecraft.', display_order: 8, is_active: true },
-  { id: 'pos-9', name: 'Media Head', tier: 'TY_LEADERSHIP', domain: 'MEDIA', description: 'Leads branding, photography, videography, and graphic assets.', display_order: 9, is_active: true },
-  { id: 'pos-10', name: 'Media Co-Head', tier: 'TY_LEADERSHIP', domain: 'MEDIA', description: 'Co-leads design editorial, social publicity, and live streaming.', display_order: 10, is_active: true },
-  { id: 'pos-11', name: 'Anchoring Head', tier: 'TY_LEADERSHIP', domain: 'ANCHORING', description: 'Oversees master of ceremonies, scripting, and stage moderation.', display_order: 11, is_active: true },
-  { id: 'pos-12', name: 'Anchoring Co-Head', tier: 'TY_LEADERSHIP', domain: 'ANCHORING', description: 'Co-leads public announcements, stage dialogue, and host panels.', display_order: 12, is_active: true },
-  { id: 'pos-13', name: 'Sports Head', tier: 'TY_LEADERSHIP', domain: 'SPORTS', description: 'Organizes intra-department sports leagues, fixtures, and referees.', display_order: 13, is_active: true },
-  { id: 'pos-14', name: 'Sports Co-Head', tier: 'TY_LEADERSHIP', domain: 'SPORTS', description: 'Assists in athletic tournaments, equipment, and sports logistics.', display_order: 14, is_active: true },
-  { id: 'pos-15', name: 'Alumni & Relations Head', tier: 'TY_LEADERSHIP', domain: 'ALUMNI', description: 'Manages alumni connections, industry outreach, and sponsorships.', display_order: 15, is_active: true },
-  { id: 'pos-16', name: 'Alumni & Relations Co-Head', tier: 'TY_LEADERSHIP', domain: 'ALUMNI', description: 'Co-leads networking events, mentorship programs, and relations.', display_order: 16, is_active: true },
-
-  // SY Coordinators
-  { id: 'pos-17', name: 'Main Coordinator', tier: 'SY_COORDINATOR', domain: 'OVERALL', description: 'Primary coordinator for overall batch execution.', display_order: 17, is_active: true },
-  { id: 'pos-18', name: 'Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'OVERALL', description: 'Joint coordinator supporting overall execution.', display_order: 18, is_active: true },
-  { id: 'pos-19', name: 'Technical Main Coordinator', tier: 'SY_COORDINATOR', domain: 'TECHNICAL', description: 'Coordinates labs, technical submissions, and problem sets.', display_order: 19, is_active: true },
-  { id: 'pos-20', name: 'Technical Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'TECHNICAL', description: 'Assists in lab installations and technical setup.', display_order: 20, is_active: true },
-  { id: 'pos-21', name: 'Media Main Coordinator', tier: 'SY_COORDINATOR', domain: 'MEDIA', description: 'Coordinates visual captures and design collateral.', display_order: 21, is_active: true },
-  { id: 'pos-22', name: 'Media Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'MEDIA', description: 'Assists with real-time social stories and photo sorting.', display_order: 22, is_active: true },
-  { id: 'pos-23', name: 'Anchoring Main Coordinator', tier: 'SY_COORDINATOR', domain: 'ANCHORING', description: 'Coordinates speaker intros and agenda announcements.', display_order: 23, is_active: true },
-  { id: 'pos-24', name: 'Anchoring Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'ANCHORING', description: 'Assists on-stage emcees with cue cards and runner coordination.', display_order: 24, is_active: true },
-  { id: 'pos-25', name: 'Finance Main Coordinator', tier: 'SY_COORDINATOR', domain: 'FINANCE', description: 'Coordinates receipt ledger entries and participant registrations.', display_order: 25, is_active: true },
-  { id: 'pos-26', name: 'Finance Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'FINANCE', description: 'Assists in entry desk receipts and ticket validation.', display_order: 26, is_active: true },
-  { id: 'pos-27', name: 'Sports Main Coordinator', tier: 'SY_COORDINATOR', domain: 'SPORTS', description: 'Coordinates match schedules, court bookings, and scoreboard logs.', display_order: 27, is_active: true },
-  { id: 'pos-28', name: 'Sports Joint Coordinator', tier: 'SY_COORDINATOR', domain: 'SPORTS', description: 'Assists in tournament refereeing and medal ceremonies.', display_order: 28, is_active: true },
-  { id: 'pos-29', name: 'Alumni & Relations Main Coordinator', tier: 'SY_COORDINATOR', domain: 'ALUMNI', description: 'Coordinates guest reception, hospitality, and memento delivery.', display_order: 29, is_active: true },
-
-  // Faculty Advisory
-  { id: 'pos-30', name: 'ITSA Faculty Coordinator', tier: 'FACULTY', domain: 'OVERALL', description: 'Faculty advisor overseeing governance, standards, and institutional compliance.', display_order: 30, is_active: true },
-  { id: 'pos-31', name: 'Head of the Department', tier: 'FACULTY', domain: 'OVERALL', description: 'Head of the Department of Information Technology.', display_order: 31, is_active: true },
-  { id: 'pos-32', name: 'Dean Student Activities', tier: 'FACULTY', domain: 'OVERALL', description: 'Dean of Student Activities advising student governance.', display_order: 32, is_active: true },
-];
-
 function mapDbPositionToApp(row: any): Position {
   return {
     id: row.id,
@@ -77,15 +34,10 @@ export async function getAllAdminPositions(): Promise<Position[]> {
 export async function getActivePositions(): Promise<Position[]> {
   try {
     const data = await api.get<any[]>('/api/positions');
-
-    if (!data || data.length === 0) {
-      return inMemoryPositions.filter((p) => p.is_active);
-    }
-
-    return data.map(mapDbPositionToApp);
+    return (data || []).map(mapDbPositionToApp);
   } catch (err) {
-    console.warn('Failed to fetch active positions from API:', err);
-    return inMemoryPositions.filter((p) => p.is_active);
+    console.error('Failed to fetch active positions from API:', err);
+    return [];
   }
 }
 
@@ -95,15 +47,10 @@ export async function getActivePositions(): Promise<Position[]> {
 export async function getActivePositionsByTier(tier: CommitteeTier): Promise<Position[]> {
   try {
     const data = await api.get<any[]>(`/api/positions?tier=${encodeURIComponent(tier)}`);
-
-    if (!data || data.length === 0) {
-      return inMemoryPositions.filter((p) => p.is_active && p.tier === tier);
-    }
-
-    return data.map(mapDbPositionToApp);
+    return (data || []).map(mapDbPositionToApp);
   } catch (err) {
-    console.warn(`Failed to fetch positions for tier ${tier} from API:`, err);
-    return inMemoryPositions.filter((p) => p.is_active && p.tier === tier);
+    console.error(`Failed to fetch positions for tier ${tier} from API:`, err);
+    return [];
   }
 }
 

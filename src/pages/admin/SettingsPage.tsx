@@ -22,9 +22,9 @@ export const SettingsPage: React.FC = () => {
   const [departmentAddress, setDepartmentAddress] = useState(
     'Department of Information Technology, SGGSIE&T, Vishnupuri, Nanded - 431606'
   );
-  const [linkedinUrl, setLinkedinUrl] = useState('https://linkedin.com/company/itsa-sggsiet');
-  const [githubUrl, setGithubUrl] = useState('https://github.com/itsa-sggsiet');
-  const [instagramUrl, setInstagramUrl] = useState('https://instagram.com/itsa_sggsiet');
+  const [linkedinUrl, setLinkedinUrl] = useState('https://www.linkedin.com/company/itsa-sggs/home/');
+  const [githubUrl, setGithubUrl] = useState('https://github.com/ITSA-SGGS');
+  const [instagramUrl, setInstagramUrl] = useState('https://www.instagram.com/itsasggs/');
 
   useEffect(() => {
     if (settings) {

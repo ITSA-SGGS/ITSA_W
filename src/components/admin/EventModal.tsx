@@ -116,10 +116,19 @@ export const EventModal: React.FC<EventModalProps> = ({
     }
   };
 
+  const hasMissingCover = Boolean(
+    formData.is_published && (!formData.cover_image_url || !formData.cover_image_url.trim())
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       setErrorMessage('Event Title is required.');
+      return;
+    }
+
+    if (hasMissingCover) {
+      setErrorMessage('A cover image is required for published events.');
       return;
     }
 
@@ -344,7 +353,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <input
                   type="checkbox"
                   checked={formData.is_published}
-                  onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                  onChange={(e) => {
+                    const nextPublished = e.target.checked;
+                    setFormData({ ...formData, is_published: nextPublished });
+                    if (errorMessage === 'A cover image is required for published events.') {
+                      setErrorMessage(null);
+                    }
+                  }}
                   className="w-4 h-4 rounded border-black/20 text-[#0072CE] focus:ring-[#0072CE]"
                 />
                 <span>Publish on Website (Publicly Visible)</span>
@@ -384,13 +399,24 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           {/* Section 05: Cover Image Upload */}
           <div className="space-y-4">
-            <div className="font-mono text-[11px] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider font-semibold border-b border-black/5 dark:border-white/5 pb-2">
-              05 // MEDIA ASSETS
+            <div className="font-mono text-[11px] text-[#6E6E73] dark:text-[#8E8E93] uppercase tracking-wider font-semibold border-b border-black/5 dark:border-white/5 pb-2 flex items-center justify-between">
+              <span>05 // MEDIA ASSETS</span>
+              {formData.is_published && (
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider">
+                  * Required for publication
+                </span>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 items-start">
               {/* Preview Thumbnail */}
-              <div className="w-28 h-28 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 overflow-hidden flex items-center justify-center shrink-0">
+              <div
+                className={`w-28 h-28 rounded-xl border ${
+                  hasMissingCover
+                    ? 'border-amber-500/50 bg-amber-500/5'
+                    : 'border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5'
+                } overflow-hidden flex items-center justify-center shrink-0 transition-colors`}
+              >
                 {formData.cover_image_url ? (
                   <img
                     src={formData.cover_image_url}
@@ -398,7 +424,11 @@ export const EventModal: React.FC<EventModalProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <ImageIcon className="w-8 h-8 text-[#6E6E73]" />
+                  <ImageIcon
+                    className={`w-8 h-8 ${
+                      hasMissingCover ? 'text-amber-500/70' : 'text-[#6E6E73]'
+                    }`}
+                  />
                 )}
               </div>
 
@@ -433,6 +463,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                     </button>
                   )}
                 </div>
+
+                {hasMissingCover && (
+                  <div className="flex items-center gap-1.5 font-mono text-xs text-amber-600 dark:text-amber-400 pt-0.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>A cover image is required for published events.</span>
+                  </div>
+                )}
 
                 <p className="font-mono text-[10px] text-[#6E6E73] dark:text-[#8E8E93]">
                   Allowed: JPEG, PNG, WebP, AVIF · Max size 10MB · Uploads directly to 'event-media' storage bucket.
