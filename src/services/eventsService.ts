@@ -165,39 +165,15 @@ export async function getPublishedEventsByCategory(
 // ============================================================================
 // ADMINISTRATIVE CRUD OPERATIONS (Full Access governed by RLS)
 // ============================================================================
+import { sanitizeUrl } from '../lib/security';
 
 /**
  * Fetches all events (including drafts and unpublished records) for the Admin Dashboard.
  */
 export async function getAllAdminEvents(): Promise<SampleEvent[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryEvents].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn('Admin events fetch encountered an error, using fallback:', error.message);
-      return [...inMemoryEvents].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    if (!data || data.length === 0) {
-      return [...inMemoryEvents].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map((row, i) => mapDbEventToApp(row, i));
-  } catch (err) {
-    console.warn('Failed to fetch admin events:', err);
-    return [...inMemoryEvents].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/events?limit=100');
+  return (data || []).map((row, i) => mapDbEventToApp(row, i));
 }
-
-import { sanitizeUrl } from '../lib/security';
 
 /**
  * Creates a new event record.
@@ -220,41 +196,7 @@ export async function createEvent(formData: EventFormData): Promise<SampleEvent>
     display_order: Number(formData.display_order) || 0,
   };
 
-  if (!isSupabaseConfigured) {
-    const newMock: SampleEvent = {
-      id: `mock-event-${Date.now()}`,
-      index: String(payload.display_order || inMemoryEvents.length + 1).padStart(2, '0'),
-      title: payload.title,
-      subtitle: payload.venue ? `${payload.venue} · ${payload.status}` : `${payload.category} SESSION`,
-      description: payload.description || '',
-      year: String(payload.year || '2026'),
-      category: payload.category,
-      event_date: payload.event_date,
-      start_time: payload.start_time,
-      end_time: payload.end_time,
-      venue: payload.venue,
-      registration_url: payload.registration_url,
-      cover_image_url: payload.cover_image_url,
-      status: payload.status,
-      is_published: payload.is_published,
-      is_featured: payload.is_featured,
-      display_order: payload.display_order,
-      created_at: new Date().toISOString(),
-    };
-    inMemoryEvents = [newMock, ...inMemoryEvents];
-    return newMock;
-  }
-
-  const { data, error } = await (supabase
-    .from('events') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create event in database.');
-  }
-
+  const data = await api.post<any>('/api/admin/events', payload);
   return mapDbEventToApp(data, 0);
 }
 
@@ -281,32 +223,7 @@ export async function updateEvent(
   if (formData.is_featured !== undefined) payload.is_featured = Boolean(formData.is_featured);
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
 
-  if (!isSupabaseConfigured) {
-    inMemoryEvents = inMemoryEvents.map((evt) => {
-      if (evt.id === id) {
-        return {
-          ...evt,
-          ...payload,
-          year: payload.year ? String(payload.year) : evt.year,
-        };
-      }
-      return evt;
-    });
-    const updated = inMemoryEvents.find((e) => e.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('events') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update event in database.');
-  }
-
+  const data = await api.put<any>(`/api/admin/events/${id}`, payload);
   return mapDbEventToApp(data, 0);
 }
 
@@ -314,33 +231,23 @@ export async function updateEvent(
  * Deletes an event record.
  */
 export async function deleteEvent(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemoryEvents = inMemoryEvents.filter((e) => e.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('events')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete event.');
-  }
+  await api.delete(`/api/admin/events/${id}`);
 }
 
 /**
  * Quick toggle for publication status (is_published).
  */
 export async function togglePublishEvent(id: string, currentPublishedState: boolean): Promise<SampleEvent> {
-  return updateEvent(id, { is_published: !currentPublishedState } as any);
+  const data = await api.patch<any>(`/api/admin/events/${id}/publish`, { is_published: !currentPublishedState });
+  return mapDbEventToApp(data, 0);
 }
 
 /**
  * Quick toggle for featured status (is_featured).
  */
 export async function toggleFeatureEvent(id: string, currentFeaturedState: boolean): Promise<SampleEvent> {
-  return updateEvent(id, { is_featured: !currentFeaturedState } as any);
+  const data = await api.patch<any>(`/api/admin/events/${id}/feature`, { is_featured: !currentFeaturedState });
+  return mapDbEventToApp(data, 0);
 }
 
 /**

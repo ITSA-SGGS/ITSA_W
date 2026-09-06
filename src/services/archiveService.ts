@@ -108,21 +108,8 @@ export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
  * Fetches all archive records (both published and drafts) for the Admin Dashboard.
  */
 export async function getAllAdminArchiveRecords(): Promise<GalleryItem[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
   try {
-    const { data, error } = await supabase
-      .from('archive_records')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.warn('Admin archive fetch encountered an error, using fallback:', error.message);
-      return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
+    const data = await api.get<any[]>('/api/admin/archive?limit=100');
 
     if (!data || data.length === 0) {
       return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -130,7 +117,7 @@ export async function getAllAdminArchiveRecords(): Promise<GalleryItem[]> {
 
     return data.map((row, i) => mapDbArchiveToApp(row, i));
   } catch (err) {
-    console.warn('Failed to fetch admin archive records:', err);
+    console.warn('Failed to fetch admin archive records from API, using fallback:', err);
     return [...inMemoryArchive].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   }
 }
@@ -143,49 +130,27 @@ export async function createArchiveRecord(formData: ArchiveFormData): Promise<Ga
     throw new Error('Image URL or uploaded file is required for archive records.');
   }
 
+  let parsedYear: number | null = null;
+  if (formData.year !== undefined && formData.year !== null) {
+    if (typeof formData.year === 'number') {
+      parsedYear = formData.year;
+    } else {
+      const match = String(formData.year).match(/\b(19\d\d|20\d\d)\b/);
+      parsedYear = match ? parseInt(match[0], 10) : null;
+    }
+  }
+
   const payload = {
     title: formData.title?.trim() || null,
     description: formData.description?.trim() || null,
     image_url: formData.image_url.trim(),
-    year: formData.year ? String(formData.year) : '2026',
+    year: parsedYear,
     event_name: formData.event_name?.trim() || null,
     display_order: Number(formData.display_order) || 0,
     is_published: Boolean(formData.is_published),
   };
 
-  if (!isSupabaseConfigured) {
-    const nextIdx = inMemoryArchive.length + 1;
-    const newMock: GalleryItem = {
-      id: `mock-archive-${Date.now()}`,
-      index: String(payload.display_order || nextIdx).padStart(2, '0'),
-      title: payload.title || '',
-      caption: payload.description || undefined,
-      description: payload.description,
-      year: payload.year,
-      category: 'ARCHIVE',
-      image: payload.image_url,
-      image_url: payload.image_url,
-      aspect: (payload.display_order === 1 || payload.display_order === 2) ? 'wide' : 'square',
-      meta: 'ITSA · SGGSIE&T Records',
-      event_name: payload.event_name,
-      display_order: payload.display_order,
-      is_published: payload.is_published,
-      created_at: new Date().toISOString(),
-    };
-    inMemoryArchive = [...inMemoryArchive, newMock];
-    return newMock;
-  }
-
-  const { data, error } = await (supabase
-    .from('archive_records') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create archive record.');
-  }
-
+  const data = await api.post<any>('/api/admin/archive', payload);
   return mapDbArchiveToApp(data, 0);
 }
 
@@ -200,38 +165,21 @@ export async function updateArchiveRecord(
   if (formData.title !== undefined) payload.title = formData.title?.trim() || null;
   if (formData.description !== undefined) payload.description = formData.description?.trim() || null;
   if (formData.image_url !== undefined) payload.image_url = formData.image_url.trim();
-  if (formData.year !== undefined) payload.year = formData.year ? String(formData.year) : null;
+  if (formData.year !== undefined) {
+    if (formData.year === null || formData.year === '') {
+      payload.year = null;
+    } else if (typeof formData.year === 'number') {
+      payload.year = formData.year;
+    } else {
+      const match = String(formData.year).match(/\b(19\d\d|20\d\d)\b/);
+      payload.year = match ? parseInt(match[0], 10) : null;
+    }
+  }
   if (formData.event_name !== undefined) payload.event_name = formData.event_name?.trim() || null;
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
   if (formData.is_published !== undefined) payload.is_published = Boolean(formData.is_published);
 
-  if (!isSupabaseConfigured) {
-    inMemoryArchive = inMemoryArchive.map((item) => {
-      if (item.id === id) {
-        return {
-          ...item,
-          ...payload,
-          image: payload.image_url || item.image,
-          image_url: payload.image_url || item.image_url,
-        };
-      }
-      return item;
-    });
-    const updated = inMemoryArchive.find((a) => a.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('archive_records') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update archive record.');
-  }
-
+  const data = await api.put<any>(`/api/admin/archive/${encodeURIComponent(id)}`, payload);
   return mapDbArchiveToApp(data, 0);
 }
 
@@ -242,26 +190,17 @@ export async function toggleArchivePublished(
   id: string,
   currentPublishedState: boolean
 ): Promise<GalleryItem> {
-  return updateArchiveRecord(id, { is_published: !currentPublishedState });
+  const data = await api.patch<any>(`/api/admin/archive/${encodeURIComponent(id)}/publish`, {
+    is_published: !currentPublishedState,
+  });
+  return mapDbArchiveToApp(data, 0);
 }
 
 /**
  * Deletes an archive photograph record.
  */
 export async function deleteArchiveRecord(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemoryArchive = inMemoryArchive.filter((a) => a.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('archive_records')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete archive record.');
-  }
+  await api.delete<{ message: string }>(`/api/admin/archive/${encodeURIComponent(id)}`);
 }
 
 /**

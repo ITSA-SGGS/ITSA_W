@@ -1,4 +1,3 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
 import { getActiveCommitteeMembers } from './teamService';
 import { Position, PositionFormData, CommitteeTier } from '../types';
@@ -68,31 +67,8 @@ function mapDbPositionToApp(row: any): Position {
  * Fetches all positions for the Admin Management interface.
  */
 export async function getAllAdminPositions(): Promise<Position[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryPositions].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('positions')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('name', { ascending: true });
-
-    if (error) {
-      console.warn('Supabase positions query failed, using fallback:', error.message);
-      return [...inMemoryPositions].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    if (!data || data.length === 0) {
-      return [...inMemoryPositions].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map(mapDbPositionToApp);
-  } catch (err) {
-    console.warn('Failed to fetch positions from Supabase:', err);
-    return [...inMemoryPositions].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/positions?limit=100');
+  return (data || []).map(mapDbPositionToApp);
 }
 
 /**
@@ -168,52 +144,7 @@ export async function createPosition(formData: PositionFormData): Promise<Positi
     is_active: Boolean(formData.is_active),
   };
 
-  if (!isSupabaseConfigured) {
-    // Check local duplicate
-    const exists = inMemoryPositions.some(
-      (p) => p.is_active && p.name.toLowerCase() === name.toLowerCase() && p.tier === payload.tier
-    );
-    if (exists) {
-      throw new Error(`An active position with the title "${name}" already exists in ${payload.tier}.`);
-    }
-
-    const newMock: Position = {
-      id: `mock-pos-${Date.now()}`,
-      name: payload.name,
-      tier: payload.tier,
-      domain: payload.domain,
-      description: payload.description,
-      display_order: payload.display_order,
-      is_active: payload.is_active,
-      created_at: new Date().toISOString(),
-    };
-    inMemoryPositions = [...inMemoryPositions, newMock];
-    return newMock;
-  }
-
-  // Check for duplicate active role in Supabase
-  const { data: existing } = await supabase
-    .from('positions')
-    .select('id')
-    .ilike('name', name)
-    .eq('tier', payload.tier)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (existing) {
-    throw new Error(`An active position titled "${name}" already exists in ${payload.tier}.`);
-  }
-
-  const { data, error } = await (supabase
-    .from('positions') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create position.');
-  }
-
+  const data = await api.post<any>('/api/admin/positions', payload);
   return mapDbPositionToApp(data);
 }
 
@@ -232,28 +163,7 @@ export async function updatePosition(
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
   if (formData.is_active !== undefined) payload.is_active = Boolean(formData.is_active);
 
-  if (!isSupabaseConfigured) {
-    inMemoryPositions = inMemoryPositions.map((p) => {
-      if (p.id === id) {
-        return { ...p, ...payload };
-      }
-      return p;
-    });
-    const updated = inMemoryPositions.find((p) => p.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('positions') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update position.');
-  }
-
+  const data = await api.put<any>(`/api/admin/positions/${encodeURIComponent(id)}`, payload);
   return mapDbPositionToApp(data);
 }
 
@@ -264,7 +174,10 @@ export async function togglePositionActive(
   id: string,
   currentStatus: boolean
 ): Promise<Position> {
-  return updatePosition(id, { is_active: !currentStatus });
+  const data = await api.patch<any>(`/api/admin/positions/${encodeURIComponent(id)}/active`, {
+    is_active: !currentStatus,
+  });
+  return mapDbPositionToApp(data);
 }
 
 /**
@@ -278,17 +191,5 @@ export async function deletePosition(id: string, positionName: string): Promise<
     );
   }
 
-  if (!isSupabaseConfigured) {
-    inMemoryPositions = inMemoryPositions.filter((p) => p.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('positions')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete position.');
-  }
+  await api.delete<{ message: string }>(`/api/admin/positions/${encodeURIComponent(id)}`);
 }

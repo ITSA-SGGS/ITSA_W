@@ -1,5 +1,5 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { api } from '../lib/api';
+import { sanitizeUrl } from '../lib/security';
 import { SiteSetting } from '../types';
 
 let inMemorySettings: Record<string, any> = {
@@ -48,7 +48,7 @@ export async function getPublicSiteSettings(): Promise<Record<string, any>> {
 }
 
 // ============================================================================
-// ADMINISTRATIVE CRUD OPERATIONS (Governed by RLS - Restricted to SUPER_ADMIN)
+// ADMINISTRATIVE CRUD OPERATIONS (Restricted to SUPER_ADMIN)
 // ============================================================================
 
 /**
@@ -57,32 +57,11 @@ export async function getPublicSiteSettings(): Promise<Record<string, any>> {
 export async function updateSiteSetting(
   key: string,
   value: any,
-  description?: string
+  _description?: string
 ): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemorySettings[key] = value;
-    return;
-  }
-
-  const { error } = await (supabase
-    .from('site_settings') as any)
-    .upsert(
-      {
-        key,
-        value,
-        description: description || null,
-        is_public: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'key' }
-    );
-
-  if (error) {
-    throw new Error(error.message || `Failed to update site setting "${key}".`);
-  }
+  await api.put<{ message: string }>('/api/admin/settings', { [key]: value });
+  inMemorySettings[key] = value;
 }
-
-import { sanitizeUrl } from '../lib/security';
 
 /**
  * Saves a batch of site settings.
@@ -100,26 +79,9 @@ export async function saveBatchSiteSettings(
     };
   }
 
-  if (!isSupabaseConfigured) {
-    inMemorySettings = {
-      ...inMemorySettings,
-      ...sanitizedMap,
-    };
-    return;
-  }
-
-  const upsertRows = Object.entries(sanitizedMap).map(([key, value]) => ({
-    key,
-    value,
-    is_public: true,
-    updated_at: new Date().toISOString(),
-  }));
-
-  const { error } = await (supabase
-    .from('site_settings') as any)
-    .upsert(upsertRows, { onConflict: 'key' });
-
-  if (error) {
-    throw new Error(error.message || 'Failed to save site settings.');
-  }
+  await api.put<{ message: string }>('/api/admin/settings', sanitizedMap);
+  inMemorySettings = {
+    ...inMemorySettings,
+    ...sanitizedMap,
+  };
 }

@@ -119,31 +119,8 @@ export async function getActiveCommitteeMembersByTier(
  * Fetches all members (including inactive members) for the Admin Dashboard.
  */
 export async function getAllAdminMembers(): Promise<CommitteeMember[]> {
-  if (!isSupabaseConfigured) {
-    return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('committee_members')
-      .select('*')
-      .order('display_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.warn('Admin members fetch encountered an error, using fallback:', error.message);
-      return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    if (!data || data.length === 0) {
-      return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-    }
-
-    return data.map(mapDbMemberToApp);
-  } catch (err) {
-    console.warn('Failed to fetch admin members:', err);
-    return [...inMemoryMembers].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }
+  const data = await api.get<any[]>('/api/admin/team?limit=100');
+  return (data || []).map(mapDbMemberToApp);
 }
 
 /**
@@ -164,36 +141,7 @@ export async function createMember(formData: MemberFormData): Promise<CommitteeM
     is_active: Boolean(formData.is_active),
   };
 
-  if (!isSupabaseConfigured) {
-    const newMock: CommitteeMember = {
-      id: `mock-member-${Date.now()}`,
-      name: payload.name,
-      position: payload.position,
-      tier: payload.tier,
-      domain: payload.domain,
-      department: payload.department || undefined,
-      photo: payload.photo_url || undefined,
-      photo_url: payload.photo_url || undefined,
-      linkedin_url: payload.linkedin_url || undefined,
-      github_url: payload.github_url || undefined,
-      tenure_year: payload.tenure_year,
-      display_order: payload.display_order,
-      is_active: payload.is_active,
-    };
-    inMemoryMembers = [...inMemoryMembers, newMock];
-    return newMock;
-  }
-
-  const { data, error } = await (supabase
-    .from('committee_members') as any)
-    .insert([payload])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to create committee member.');
-  }
-
+  const data = await api.post<any>('/api/admin/team', payload);
   return mapDbMemberToApp(data);
 }
 
@@ -217,32 +165,7 @@ export async function updateMember(
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
   if (formData.is_active !== undefined) payload.is_active = Boolean(formData.is_active);
 
-  if (!isSupabaseConfigured) {
-    inMemoryMembers = inMemoryMembers.map((m) => {
-      if (m.id === id) {
-        return {
-          ...m,
-          ...payload,
-          photo: payload.photo_url || m.photo,
-        };
-      }
-      return m;
-    });
-    const updated = inMemoryMembers.find((m) => m.id === id)!;
-    return updated;
-  }
-
-  const { data, error } = await (supabase
-    .from('committee_members') as any)
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message || 'Failed to update committee member.');
-  }
-
+  const data = await api.put<any>(`/api/admin/team/${id}`, payload);
   return mapDbMemberToApp(data);
 }
 
@@ -253,26 +176,15 @@ export async function toggleMemberActive(
   id: string,
   currentStatus: boolean
 ): Promise<CommitteeMember> {
-  return updateMember(id, { is_active: !currentStatus });
+  const data = await api.patch<any>(`/api/admin/team/${id}/active`, { is_active: !currentStatus });
+  return mapDbMemberToApp(data);
 }
 
 /**
  * Permanently deletes a committee member record.
  */
 export async function deleteMember(id: string): Promise<void> {
-  if (!isSupabaseConfigured) {
-    inMemoryMembers = inMemoryMembers.filter((m) => m.id !== id);
-    return;
-  }
-
-  const { error } = await supabase
-    .from('committee_members')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    throw new Error(error.message || 'Failed to delete committee member.');
-  }
+  await api.delete(`/api/admin/team/${id}`);
 }
 
 /**
