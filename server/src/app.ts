@@ -12,6 +12,9 @@ import { generalRateLimiter } from './middleware/rateLimit.middleware.js';
 export function createApp(): Express {
   const app = express();
 
+  // Reverse proxy support (Render / Vercel reverse proxy)
+  app.set('trust proxy', 1);
+
   // 1. Security Headers
   app.use(helmet());
 
