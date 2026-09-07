@@ -9,7 +9,9 @@ import {
   DeleteObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import {
   IStorageProvider,
   R2ProviderConfig,
@@ -28,10 +30,12 @@ export class R2StorageProvider implements IStorageProvider {
   private readonly bucketName: string;
   private readonly publicUrl?: string;
   private readonly endpoint: string;
+  private readonly signedUrlExpiresSeconds: number;
 
   constructor(config: R2ProviderConfig) {
     this.bucketName = config.bucketName;
     this.publicUrl = config.publicUrl?.trim() || undefined;
+    this.signedUrlExpiresSeconds = config.signedUrlExpiresSeconds || 900;
 
     // Cloudflare R2 default endpoint pattern or custom S3 endpoint
     if (config.endpoint) {
@@ -45,6 +49,7 @@ export class R2StorageProvider implements IStorageProvider {
     this.client = new S3Client({
       region: config.region || 'auto',
       endpoint: this.endpoint,
+      forcePathStyle: config.forcePathStyle,
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
@@ -71,11 +76,16 @@ export class R2StorageProvider implements IStorageProvider {
 
     await this.client.send(command);
 
-    const publicUrl = this.getPublicUrl(key);
+    let accessibleUrl: string;
+    try {
+      accessibleUrl = await this.getSignedUrl(key);
+    } catch {
+      accessibleUrl = this.getPublicUrl(key);
+    }
     const category = resolveCategoryFromKey(key);
 
     return {
-      url: publicUrl,
+      url: accessibleUrl,
       key,
       bucket: this.bucketName,
       size: file.size,
@@ -100,6 +110,17 @@ export class R2StorageProvider implements IStorageProvider {
       return `${this.publicUrl.replace(/\/+$/, '')}/${cleanKey}`;
     }
     return `${this.endpoint.replace(/\/+$/, '')}/${this.bucketName}/${cleanKey}`;
+  }
+
+  public async getSignedUrl(key: string, expiresIn?: number): Promise<string> {
+    const cleanKey = key.replace(/^\/+/, '');
+    const command = new GetObjectCommand({
+      Bucket: this.bucketName,
+      Key: cleanKey,
+    });
+    return getSignedUrl(this.client, command, {
+      expiresIn: expiresIn ?? this.signedUrlExpiresSeconds,
+    });
   }
 
   public async head(key: string): Promise<StorageObjectMetadata | null> {
@@ -140,3 +161,5 @@ export class R2StorageProvider implements IStorageProvider {
     }
   }
 }
+
+export { R2StorageProvider as S3StorageProvider };

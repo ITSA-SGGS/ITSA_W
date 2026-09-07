@@ -118,6 +118,50 @@ export class StorageService {
   }
 
   /**
+   * Generates a signed GET URL for a managed storage key or media reference.
+   * If key cannot be extracted (e.g. external link or root-relative path), returns as-is.
+   */
+  public async getSignedUrl(keyOrUrl: string, expiresIn?: number): Promise<string> {
+    if (!keyOrUrl || typeof keyOrUrl !== 'string') return '';
+    const key = this.extractKey(keyOrUrl);
+    if (!key) {
+      return this.resolveMediaUrl(keyOrUrl);
+    }
+    return this.provider.getSignedUrl(key, expiresIn);
+  }
+
+  /**
+   * Resolves a stored media reference, key, full S3 URL, or legacy URL to an accessible URL.
+   * If the target is an S3/Tigris managed object, generates a short-lived presigned GET URL.
+   * If it is a static asset (/team/...) or external URL, preserves it cleanly.
+   */
+  public async resolveSignedUrl(
+    keyOrUrl: string | null | undefined,
+    expiresIn?: number
+  ): Promise<string> {
+    if (!keyOrUrl) return '';
+    const trimmed = keyOrUrl.trim();
+    if (!trimmed) return '';
+
+    // If traversal detected, return empty string safely
+    if (this.containsTraversal(trimmed)) {
+      return '';
+    }
+
+    const key = this.extractKey(trimmed);
+    if (key) {
+      try {
+        return await this.provider.getSignedUrl(key, expiresIn);
+      } catch (err: any) {
+        logger.error(`Error generating signed URL for key "${key}":`, err.message);
+        return this.resolveMediaUrl(trimmed);
+      }
+    }
+
+    return this.resolveMediaUrl(trimmed);
+  }
+
+  /**
    * Resolves a stored media reference, key, or legacy Supabase URL to a public URL.
    */
   public resolveMediaUrl(keyOrUrl: string | null | undefined): string {

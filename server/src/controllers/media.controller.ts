@@ -127,7 +127,7 @@ export class MediaController {
   };
 
   /**
-   * Public endpoint to resolve a stored key, relative path, or legacy Supabase URL to a public URL.
+   * Public endpoint to resolve a stored key, relative path, or legacy Supabase URL to a public or presigned GET URL.
    */
   public resolveMedia = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -136,8 +136,32 @@ export class MediaController {
         throw new BadRequestError('Query parameter "url" or "key" is required.');
       }
 
-      const resolvedUrl = storageService.resolveMediaUrl(rawUrl);
+      const expiresIn = req.query.expiresIn ? parseInt(req.query.expiresIn as string, 10) : undefined;
+      const resolvedUrl = await storageService.resolveSignedUrl(rawUrl, expiresIn);
       sendSuccess(res, { original: rawUrl, resolvedUrl });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
+   * Public endpoint to generate a short-lived presigned GET URL for a private storage object.
+   * Does NOT require admin authentication.
+   */
+  public getSignedUrl = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const target = (req.query.key as string) || (req.query.url as string);
+      if (!target) {
+        throw new BadRequestError('Query parameter "key" or "url" is required.');
+      }
+
+      if (storageService.containsTraversal(target)) {
+        throw new BadRequestError('Path traversal attempt detected.');
+      }
+
+      const expiresIn = req.query.expiresIn ? parseInt(req.query.expiresIn as string, 10) : undefined;
+      const signedUrl = await storageService.resolveSignedUrl(target, expiresIn);
+      sendSuccess(res, { target, signedUrl });
     } catch (error) {
       next(error);
     }

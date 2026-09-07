@@ -1,14 +1,26 @@
 import { eventsRepository, PublicEventsFilter, AdminEventsFilter } from '../repositories/events.repository.js';
 import { EventRow, EventCategory, EventStatus } from '../types/database.js';
 import { NotFoundError } from '../utils/errors.js';
+import { storageService } from '../storage/storage.service.js';
+
+async function resolveEventMedia(event: EventRow): Promise<EventRow> {
+  if (!event.cover_image_url) return event;
+  const resolved = await storageService.resolveSignedUrl(event.cover_image_url);
+  return {
+    ...event,
+    cover_image_url: resolved || event.cover_image_url,
+  };
+}
 
 export class EventsService {
   public async getPublicEvents(filters: PublicEventsFilter = {}): Promise<EventRow[]> {
-    return eventsRepository.findPublic(filters);
+    const events = await eventsRepository.findPublic(filters);
+    return Promise.all(events.map(resolveEventMedia));
   }
 
   public async getAdminEvents(filters: AdminEventsFilter = {}): Promise<EventRow[]> {
-    return eventsRepository.findAllAdmin(filters);
+    const events = await eventsRepository.findAllAdmin(filters);
+    return Promise.all(events.map(resolveEventMedia));
   }
 
   public async getEventById(id: string): Promise<EventRow> {
@@ -16,7 +28,7 @@ export class EventsService {
     if (!event) {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
     }
-    return event;
+    return resolveEventMedia(event);
   }
 
   public async createEvent(data: {
@@ -35,7 +47,15 @@ export class EventsService {
     is_featured?: boolean;
     display_order?: number;
   }): Promise<EventRow> {
-    return eventsRepository.create(data);
+    const payload = { ...data };
+    if (payload.cover_image_url) {
+      const canonicalKey = storageService.extractKey(payload.cover_image_url);
+      if (canonicalKey) {
+        payload.cover_image_url = canonicalKey;
+      }
+    }
+    const created = await eventsRepository.create(payload);
+    return resolveEventMedia(created);
   }
 
   public async updateEvent(id: string, data: Partial<EventRow>): Promise<EventRow> {
@@ -43,8 +63,15 @@ export class EventsService {
     if (!existing) {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
     }
-    const updated = await eventsRepository.update(id, data);
-    return updated!;
+    const payload = { ...data };
+    if (payload.cover_image_url) {
+      const canonicalKey = storageService.extractKey(payload.cover_image_url);
+      if (canonicalKey) {
+        payload.cover_image_url = canonicalKey;
+      }
+    }
+    const updated = await eventsRepository.update(id, payload);
+    return resolveEventMedia(updated!);
   }
 
   public async togglePublish(id: string, isPublished?: boolean): Promise<EventRow> {
@@ -53,7 +80,7 @@ export class EventsService {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
     }
     const updated = await eventsRepository.togglePublish(id, isPublished);
-    return updated!;
+    return resolveEventMedia(updated!);
   }
 
   public async toggleFeatured(id: string, isFeatured?: boolean): Promise<EventRow> {
@@ -62,7 +89,7 @@ export class EventsService {
       throw new NotFoundError(`Event with ID "${id}" not found.`);
     }
     const updated = await eventsRepository.toggleFeatured(id, isFeatured);
-    return updated!;
+    return resolveEventMedia(updated!);
   }
 
   public async deleteEvent(id: string): Promise<void> {
