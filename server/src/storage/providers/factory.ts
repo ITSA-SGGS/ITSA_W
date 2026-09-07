@@ -11,7 +11,7 @@ import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 
 export interface StorageFactoryOptions {
-  providerType?: 'r2' | 's3' | 'local' | 'memory';
+  providerType?: 'tigris' | 'r2' | 's3' | 'local' | 'memory';
   uploadDir?: string;
   publicBaseUrl?: string;
   bucketName?: string;
@@ -40,15 +40,28 @@ export function createStorageProvider(options: StorageFactoryOptions = {}): ISto
       });
     }
 
+    case 'tigris':
     case 'r2':
     case 's3': {
-      const accessKeyId = env.R2_ACCESS_KEY_ID || env.S3_ACCESS_KEY_ID;
-      const secretAccessKey = env.R2_SECRET_ACCESS_KEY || env.S3_SECRET_ACCESS_KEY;
-      const bucketName = options.bucketName || env.R2_BUCKET_NAME || env.S3_BUCKET_NAME || 'itsa-media';
-      const publicUrl = options.publicBaseUrl || env.R2_PUBLIC_URL || env.S3_PUBLIC_URL;
+      const accessKeyId =
+        env.TIGRIS_ACCESS_KEY_ID || env.S3_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID;
+      const secretAccessKey =
+        env.TIGRIS_SECRET_ACCESS_KEY || env.S3_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY;
+      const bucketName =
+        options.bucketName ||
+        env.TIGRIS_BUCKET_NAME ||
+        env.S3_BUCKET_NAME ||
+        env.R2_BUCKET_NAME ||
+        'itsa-media';
+      const publicUrl = options.publicBaseUrl || env.S3_PUBLIC_URL || env.R2_PUBLIC_URL;
       const accountId = env.R2_ACCOUNT_ID;
-      const endpoint = env.S3_ENDPOINT || (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
-      const region = env.S3_REGION || 'auto';
+      const endpoint =
+        env.TIGRIS_ENDPOINT ||
+        env.S3_ENDPOINT ||
+        (providerType === 'tigris' ? 'https://fly.storage.tigris.dev' : undefined) ||
+        (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
+      const region = env.TIGRIS_REGION || env.S3_REGION || 'auto';
+      const signedUrlExpiresSeconds = env.STORAGE_SIGNED_URL_EXPIRES_SECONDS || 900;
 
       if (!accessKeyId || !secretAccessKey || !endpoint) {
         if (env.NODE_ENV === 'production') {
@@ -76,6 +89,7 @@ export function createStorageProvider(options: StorageFactoryOptions = {}): ISto
         secretAccessKey,
         bucketName,
         publicUrl,
+        signedUrlExpiresSeconds,
       });
     }
 

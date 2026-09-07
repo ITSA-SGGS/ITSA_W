@@ -15,6 +15,7 @@ import { uploadSingleImage } from '../storage/multer.js';
 // 1. Public Media Router
 export const publicMediaRouter = Router();
 publicMediaRouter.get('/resolve', mediaController.resolveMedia);
+publicMediaRouter.get('/signed-url', mediaController.getSignedUrl);
 publicMediaRouter.get('/config', mediaController.getStorageConfig);
 
 // 2. Admin Media Router (requires authenticated session cookie)

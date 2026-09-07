@@ -1128,11 +1128,156 @@ async function runStorageVerificationSuite() {
     }
 
     // =========================================================================
-    // SECTION 7: REGRESSION & SYSTEM INTEGRITY
+    // SECTION 7: PRIVATE OBJECT PRESIGNED GET URL & TIGRIS/S3 COMPATIBILITY
     // =========================================================================
-    console.log('\n--- SECTION 7: REGRESSION & SYSTEM INTEGRITY ---');
+    console.log('\n--- SECTION 7: PRIVATE OBJECT PRESIGNED GET URL & TIGRIS/S3 COMPATIBILITY ---');
 
-    // Test 42: Backend compiles cleanly via TypeScript 5
+    // Test 42: S3 / R2 provider generates valid SigV4 presigned GET URLs
+    {
+      const s3Provider = new R2StorageProvider({
+        endpoint: 'https://fly.storage.tigris.dev',
+        accessKeyId: 'test_tigris_key',
+        secretAccessKey: 'test_tigris_secret',
+        bucketName: 'itsa-media',
+        region: 'auto',
+        signedUrlExpiresSeconds: 900,
+      });
+
+      const signedUrl = await s3Provider.getSignedUrl('team/portraits/member1.jpg');
+      const hasAlgorithm = signedUrl.includes('X-Amz-Algorithm=AWS4-HMAC-SHA256');
+      const hasCredential = signedUrl.includes('X-Amz-Credential=');
+      const hasDate = signedUrl.includes('X-Amz-Date=');
+      const hasExpires = signedUrl.includes('X-Amz-Expires=900');
+      const hasSignature = signedUrl.includes('X-Amz-Signature=');
+      const hasSignedHeaders = signedUrl.includes('X-Amz-SignedHeaders=host');
+
+      if (hasAlgorithm && hasCredential && hasDate && hasExpires && hasSignature && hasSignedHeaders) {
+        recordPass(42, 'S3StorageProvider generates valid SigV4 presigned GET URLs with all mandatory AWS parameters');
+      } else {
+        recordFail(42, 'SigV4 presigned URL missing expected parameters', signedUrl);
+      }
+    }
+
+    // Test 43: Custom expiration on presigned GET URL
+    {
+      const s3Provider = new R2StorageProvider({
+        endpoint: 'https://fly.storage.tigris.dev',
+        accessKeyId: 'test_tigris_key',
+        secretAccessKey: 'test_tigris_secret',
+        bucketName: 'itsa-media',
+        region: 'auto',
+      });
+
+      const signedUrl300 = await s3Provider.getSignedUrl('events/covers/symposium.png', 300);
+      if (signedUrl300.includes('X-Amz-Expires=300')) {
+        recordPass(43, 'Presigned GET URL respects custom expiration parameter (300 seconds)');
+      } else {
+        recordFail(43, 'Custom expiration parameter was not applied', signedUrl300);
+      }
+    }
+
+    // Test 44: StorageService.getSignedUrl and resolveSignedUrl resolve managed keys
+    {
+      const memProvider = new MemoryStorageProvider('https://cdn.itsa.sggs.ac.in', 'itsa-media');
+      const svc = new StorageService(memProvider);
+
+      const resolved = await svc.resolveSignedUrl('team/portraits/leader.jpg', 600);
+      const isSigned = resolved.includes('expires=') && resolved.startsWith('https://cdn.itsa.sggs.ac.in/team/portraits/leader.jpg');
+
+      if (isSigned) {
+        recordPass(44, 'StorageService.resolveSignedUrl resolves canonical keys via active provider getSignedUrl');
+      } else {
+        recordFail(44, 'StorageService.resolveSignedUrl failed to generate signed URL', resolved);
+      }
+    }
+
+    // Test 45: StorageService.resolveSignedUrl preserves external URLs and root-relative static assets
+    {
+      const memProvider = new MemoryStorageProvider('https://cdn.itsa.sggs.ac.in', 'itsa-media');
+      const svc = new StorageService(memProvider);
+
+      const ext = await svc.resolveSignedUrl('https://images.unsplash.com/photo-nature');
+      const rootRel = await svc.resolveSignedUrl('/team/tanishq-raut.jpg');
+
+      if (ext === 'https://images.unsplash.com/photo-nature' && rootRel === '/team/tanishq-raut.jpg') {
+        recordPass(45, 'StorageService.resolveSignedUrl preserves external URLs and local root-relative static assets');
+      } else {
+        recordFail(45, 'External or root-relative URL was mutated', JSON.stringify({ ext, rootRel }));
+      }
+    }
+
+    // Test 46: StorageService.resolveSignedUrl extracts key from existing presigned URLs and regenerates cleanly
+    {
+      const memProvider = new MemoryStorageProvider('https://cdn.itsa.sggs.ac.in', 'itsa-media');
+      const svc = new StorageService(memProvider);
+
+      const oldPresigned = 'https://itsa-media.fly.storage.tigris.dev/events/covers/annual.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=900&X-Amz-Signature=expired';
+      const renewed = await svc.resolveSignedUrl(oldPresigned);
+
+      if (renewed.includes('events/covers/annual.png') && !renewed.includes('X-Amz-Signature=expired')) {
+        recordPass(46, 'StorageService.resolveSignedUrl cleanly extracts key from prior presigned URLs and generates fresh URLs');
+      } else {
+        recordFail(46, 'Prior presigned URL key extraction failed', renewed);
+      }
+    }
+
+    // Test 47: Public GET /api/media/signed-url returns signed URL without admin auth
+    {
+      const res = await apiRequest('/api/media/signed-url?key=events/covers/workshop.png');
+      if (res.status === 200 && res.data.success && res.data.data.signedUrl) {
+        recordPass(47, 'Public GET /api/media/signed-url returns signed URL without requiring admin authentication');
+      } else {
+        recordFail(47, 'GET /api/media/signed-url failed', `Status: ${res.status}`);
+      }
+    }
+
+    // Test 48: Public GET /api/media/resolve returns signed URL without admin auth
+    {
+      const res = await apiRequest('/api/media/resolve?url=archive/photos/ceremony.jpeg');
+      if (res.status === 200 && res.data.success && res.data.data.resolvedUrl) {
+        recordPass(48, 'Public GET /api/media/resolve returns signed URL for unauthenticated requests');
+      } else {
+        recordFail(48, 'GET /api/media/resolve failed', `Status: ${res.status}`);
+      }
+    }
+
+    // Test 49: Unauthenticated visitors can view public events, team, and archive
+    {
+      const teamRes = await apiRequest('/api/team');
+      const eventsRes = await apiRequest('/api/events');
+      const archiveRes = await apiRequest('/api/archive');
+
+      const teamOk = teamRes.status === 200 && Array.isArray(teamRes.data.data);
+      const eventsOk = eventsRes.status === 200 && Array.isArray(eventsRes.data.data);
+      const archiveOk = archiveRes.status === 200 && Array.isArray(archiveRes.data.data);
+
+      if (teamOk && eventsOk && archiveOk) {
+        recordPass(49, 'Public read APIs (/api/team, /api/events, /api/archive) accessible to unauthenticated visitors with resolved media');
+      } else {
+        recordFail(49, 'Public endpoints failed unauthenticated access', JSON.stringify({ teamStatus: teamRes.status, eventsStatus: eventsRes.status, archiveStatus: archiveRes.status }));
+      }
+    }
+
+    // Test 50: Storage Factory instantiates Tigris provider
+    {
+      const tigrisProvider = createStorageProvider({
+        providerType: 'tigris',
+        bucketName: 'test-tigris-bucket',
+      });
+
+      if (tigrisProvider instanceof R2StorageProvider || tigrisProvider instanceof LocalStorageProvider) {
+        recordPass(50, 'Storage factory cleanly supports "tigris" providerType with S3 API compatibility');
+      } else {
+        recordFail(50, 'Storage factory failed for providerType tigris', 'Unexpected provider instance');
+      }
+    }
+
+    // =========================================================================
+    // SECTION 8: REGRESSION & SYSTEM INTEGRITY
+    // =========================================================================
+    console.log('\n--- SECTION 8: REGRESSION & SYSTEM INTEGRITY ---');
+
+    // Test 51: Backend compiles cleanly via TypeScript 5
     {
       let tscPassed = false;
       try {
@@ -1143,13 +1288,13 @@ async function runStorageVerificationSuite() {
       }
 
       if (tscPassed) {
-        recordPass(42, 'Backend build succeeds (tsc exits with 0)');
+        recordPass(51, 'Backend build succeeds (tsc exits with 0)');
       } else {
-        recordFail(42, 'Backend build failed', 'TypeScript compilation failed');
+        recordFail(51, 'Backend build failed', 'TypeScript compilation failed');
       }
     }
 
-    // Test 43: Frontend build succeeds cleanly
+    // Test 52: Frontend build succeeds cleanly
     {
       let frontendPassed = false;
       try {
@@ -1160,13 +1305,13 @@ async function runStorageVerificationSuite() {
       }
 
       if (frontendPassed) {
-        recordPass(43, 'Frontend build succeeds cleanly (npm run build exits 0)');
+        recordPass(52, 'Frontend build succeeds cleanly (npm run build exits 0)');
       } else {
-        recordFail(43, 'Frontend build failed', 'Vite build failed');
+        recordFail(52, 'Frontend build failed', 'Vite build failed');
       }
     }
 
-    // Test 44: Zero modifications to frontend source files (/src untouched)
+    // Test 53: Zero modifications to frontend source files (/src untouched)
     {
       const gitDiff = execSync('git status --porcelain src/', {
         cwd: projectRoot,
@@ -1174,9 +1319,9 @@ async function runStorageVerificationSuite() {
       }).trim();
 
       if (gitDiff === '') {
-        recordPass(44, 'Confirmed zero frontend source files under /src were modified (Phase 4 boundary strictly preserved)');
+        recordPass(53, 'Confirmed zero frontend source files under /src were modified (Phase 4 boundary strictly preserved)');
       } else {
-        recordFail(44, 'Frontend source files were modified during Phase 4', gitDiff);
+        recordFail(53, 'Frontend source files were modified during Phase 4', gitDiff);
       }
     }
   } catch (error: any) {

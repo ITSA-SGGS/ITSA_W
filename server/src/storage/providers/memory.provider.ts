@@ -69,6 +69,12 @@ export class MemoryStorageProvider implements IStorageProvider {
     return `${this.baseUrl}/${cleanKey}`;
   }
 
+  public async getSignedUrl(key: string, expiresIn?: number): Promise<string> {
+    const cleanKey = key.replace(/^\/+/, '');
+    const exp = Math.floor(Date.now() / 1000) + (expiresIn || 900);
+    return `${this.baseUrl}/${cleanKey}?expires=${exp}&signature=mock-sig`;
+  }
+
   public async head(key: string): Promise<StorageObjectMetadata | null> {
     const item = this.storage.get(key);
     if (!item) return null;

@@ -60,6 +60,7 @@ export interface IStorageProvider {
   upload(key: string, file: StorageFile, options?: UploadOptions): Promise<StorageUploadResult>;
   delete(key: string): Promise<void>;
   getPublicUrl(key: string): string;
+  getSignedUrl(key: string, expiresIn?: number): Promise<string>;
   head(key: string): Promise<StorageObjectMetadata | null>;
   healthCheck(): Promise<boolean>;
 }
@@ -72,7 +73,11 @@ export interface R2ProviderConfig {
   publicUrl?: string;
   endpoint?: string;
   region?: string;
+  signedUrlExpiresSeconds?: number;
+  forcePathStyle?: boolean;
 }
+
+export type S3ProviderConfig = R2ProviderConfig;
 
 export interface LocalProviderConfig {
   uploadDir: string;

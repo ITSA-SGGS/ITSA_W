@@ -95,6 +95,10 @@ export class LocalStorageProvider implements IStorageProvider {
     return `${this.publicBaseUrl}/${cleanKey}`;
   }
 
+  public async getSignedUrl(key: string, _expiresIn?: number): Promise<string> {
+    return this.getPublicUrl(key);
+  }
+
   public async head(key: string): Promise<StorageObjectMetadata | null> {
     try {
       const fullPath = this.resolveSafePath(key);
