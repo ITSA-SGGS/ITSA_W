@@ -115,6 +115,30 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
 
   const totalPhotos = publishedPhotos.length;
 
+  // Aspect ratio cache derived from naturalWidth / naturalHeight
+  const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
+
+  // Preload and detect intrinsic dimensions for all category photos
+  useEffect(() => {
+    publishedPhotos.forEach((photo) => {
+      const url = photo.image_url || photo.image;
+      if (!url) return;
+      const img = new Image();
+      img.src = url;
+      if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
+        const ratio = img.naturalWidth / img.naturalHeight;
+        setAspectRatios((prev) => (prev[url] === ratio ? prev : { ...prev, [url]: ratio }));
+      } else {
+        img.onload = () => {
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            setAspectRatios((prev) => (prev[url] === ratio ? prev : { ...prev, [url]: ratio }));
+          }
+        };
+      }
+    });
+  }, [publishedPhotos]);
+
   // Category switch handler: immediately resets index, progress, and restarts autoplay
   const handleCategoryChange = (newCategory: EventCategoryKey) => {
     if (newCategory === activeCategory) return;
@@ -203,6 +227,25 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
   };
 
   const currentPhoto = totalPhotos > 0 ? publishedPhotos[currentIndex] : null;
+  const currentPhotoUrl = currentPhoto ? currentPhoto.image_url || currentPhoto.image : '';
+  const activeRatio = currentPhotoUrl ? aspectRatios[currentPhotoUrl] ?? null : null;
+
+  const handleSelectPhoto = useCallback(
+    (photo: GalleryItem) => {
+      if (!onSelectPhoto) return;
+      const url = photo.image_url || photo.image;
+      const r = url ? aspectRatios[url] : undefined;
+      const aspectVal: 'wide' | 'tall' | 'square' = r
+        ? r > 1.2
+          ? 'wide'
+          : r < 0.85
+          ? 'tall'
+          : 'square'
+        : 'wide';
+      onSelectPhoto({ ...photo, aspect: aspectVal });
+    },
+    [onSelectPhoto, aspectRatios]
+  );
 
   return (
     <section
@@ -264,7 +307,26 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="relative w-full rounded-3xl overflow-hidden border border-black/10 dark:border-white/10 bg-[#EBEBE6]/60 dark:bg-[#0D0D0F] shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE]"
+          className={`relative rounded-3xl overflow-hidden border border-black/10 dark:border-white/10 ${
+            totalPhotos === 0
+              ? 'w-full bg-[#EBEBE6]/60 dark:bg-[#0D0D0F]'
+              : 'bg-[#0B0B0C] dark:bg-[#0D0D0F] transition-[width,max-width,height,aspect-ratio] duration-500 ease-in-out'
+          } shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] mx-auto`}
+          style={
+            totalPhotos > 0 && activeRatio
+              ? {
+                  aspectRatio: `${activeRatio}`,
+                  width: `min(100%, calc(min(72vh, 660px) * ${activeRatio}))`,
+                  maxHeight: 'min(72vh, 660px)',
+                }
+              : totalPhotos > 0
+              ? {
+                  width: '100%',
+                  minHeight: '380px',
+                  maxHeight: 'min(72vh, 660px)',
+                }
+              : undefined
+          }
           role="region"
           aria-label={`${activeTabDef.label} Slideshow`}
         >
@@ -288,7 +350,7 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
             </div>
           ) : (
             /* Photographic Slideshow View */
-            <div className="relative min-h-[380px] sm:min-h-[500px] lg:min-h-[580px] h-[56vh] max-h-[660px] w-full overflow-hidden">
+            <div className="relative w-full h-full overflow-hidden">
               {/* Image Slides with Smooth Crossfade */}
               {publishedPhotos.map((photo, idx) => {
                 const isActive = idx === currentIndex;
@@ -296,7 +358,7 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                 return (
                   <div
                     key={photo.id}
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                    className={`absolute inset-0 flex items-center justify-center transition-opacity duration-700 ease-in-out ${
                       isActive ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                     }`}
                     aria-hidden={!isActive}
@@ -304,11 +366,21 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                     <img
                       src={photo.image_url}
                       alt={photo.title}
-                      className={`w-full h-full object-cover object-center ${
+                      onLoad={(e) => {
+                        const { naturalWidth, naturalHeight } = e.currentTarget;
+                        if (naturalWidth > 0 && naturalHeight > 0) {
+                          const r = naturalWidth / naturalHeight;
+                          const url = photo.image_url || photo.image;
+                          if (url) {
+                            setAspectRatios((prev) => (prev[url] === r ? prev : { ...prev, [url]: r }));
+                          }
+                        }
+                      }}
+                      className={`w-full h-full object-contain object-center ${
                         prefersReducedMotion
                           ? ''
                           : isActive
-                          ? 'scale-[1.03] transition-transform duration-[6000ms] ease-out'
+                          ? 'scale-[1.01] transition-transform duration-[6000ms] ease-out'
                           : 'scale-100'
                       }`}
                       loading={idx === 0 ? 'eager' : 'lazy'}
@@ -321,9 +393,9 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
               })}
 
               {/* Top Navigation & Status Bar */}
-              <div className="absolute top-4 sm:top-6 left-4 sm:left-8 right-4 sm:right-8 z-20 flex items-center justify-between text-white font-mono text-xs pointer-events-auto">
+              <div className="absolute top-3 sm:top-5 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between text-white font-mono text-[10px] sm:text-xs pointer-events-auto gap-2">
                 {/* Category Pill Tag */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 shrink-0">
                   <span className="text-[#38BDF8] font-semibold tracking-wider">
                     // {activeTabDef.label}
                   </span>
@@ -334,13 +406,13 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                 </div>
 
                 {/* Right Quick Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                   {/* Pause / Resume Indicator */}
                   {totalPhotos > 1 && !prefersReducedMotion && (
                     <button
                       type="button"
                       onClick={() => setIsPausedManually(!isPausedManually)}
-                      className="p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:bg-black/80 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
+                      className="p-1.5 sm:p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:bg-black/80 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
                       aria-label={isPausedManually ? 'Resume autoplay' : 'Pause autoplay'}
                       title={isPausedManually ? 'Resume autoplay' : 'Pause autoplay'}
                     >
@@ -352,8 +424,8 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                   {currentPhoto && onSelectPhoto && (
                     <button
                       type="button"
-                      onClick={() => onSelectPhoto(currentPhoto)}
-                      className="p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:bg-black/80 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
+                      onClick={() => handleSelectPhoto(currentPhoto)}
+                      className="p-1.5 sm:p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/80 hover:text-white hover:bg-black/80 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
                       aria-label="Expand photo in Lightbox"
                       title="View High Resolution Photo"
                     >
@@ -372,10 +444,10 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                       e.stopPropagation();
                       goToPrev();
                     }}
-                    className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
+                    className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
                     aria-label="Previous photo"
                   >
-                    <ArrowLeft className="w-5 h-5" />
+                    <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
 
                   <button
@@ -384,10 +456,10 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                       e.stopPropagation();
                       goToNext();
                     }}
-                    className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
+                    className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-md border border-white/15 text-white flex items-center justify-center transition-all opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#38BDF8]"
                     aria-label="Next photo"
                   >
-                    <ArrowRight className="w-5 h-5" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </>
               )}
@@ -395,34 +467,54 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
               {/* Bottom Editorial Caption & Metadata Overlay */}
               {currentPhoto && (
                 <div
-                  onClick={() => onSelectPhoto && onSelectPhoto(currentPhoto)}
-                  className="absolute bottom-0 inset-x-0 z-20 p-6 sm:p-8 lg:p-10 flex flex-col justify-end text-white cursor-pointer"
+                  onClick={() => handleSelectPhoto(currentPhoto)}
+                  className={`absolute bottom-0 inset-x-0 z-20 flex flex-col justify-end text-white cursor-pointer ${
+                    activeRatio && activeRatio < 1
+                      ? 'p-4 sm:p-5 lg:p-6'
+                      : 'p-4 sm:p-6 lg:p-8'
+                  }`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <div className="space-y-1.5 max-w-2xl">
-                      <div className="flex items-center gap-2 font-mono text-[11px] text-[#38BDF8] tracking-widest uppercase">
+                  <div
+                    className={`flex flex-col ${
+                      activeRatio && activeRatio < 1
+                        ? 'gap-2'
+                        : 'sm:flex-row sm:items-end justify-between gap-2 sm:gap-3'
+                    }`}
+                  >
+                    <div className="space-y-0.5 sm:space-y-1 max-w-2xl">
+                      <div className="flex items-center gap-1.5 font-mono text-[9px] sm:text-[11px] text-[#38BDF8] tracking-widest uppercase">
                         <span>RECORD {currentPhoto.index}</span>
                         <span>·</span>
                         <span>{currentPhoto.category}</span>
                       </div>
 
-                      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-white tracking-tight">
+                      <h3
+                        className={`${
+                          activeRatio && activeRatio < 1
+                            ? 'text-lg sm:text-xl'
+                            : 'text-lg sm:text-2xl lg:text-3xl'
+                        } font-display font-bold text-white tracking-tight line-clamp-1 sm:line-clamp-none`}
+                      >
                         {currentPhoto.title}
                       </h3>
 
                       {currentPhoto.description && (
-                        <p className="text-xs sm:text-sm text-white/80 font-normal line-clamp-2 leading-relaxed max-w-xl">
+                        <p className="text-[11px] sm:text-sm text-white/80 font-normal line-clamp-1 sm:line-clamp-2 leading-relaxed max-w-xl">
                           {currentPhoto.description}
                         </p>
                       )}
                     </div>
 
                     {/* Metadata & Enlarge Prompt */}
-                    <div className="flex flex-col sm:items-end font-mono text-[11px] text-white/70 space-y-1">
+                    <div
+                      className={`flex flex-col ${
+                        activeRatio && activeRatio < 1 ? 'items-start' : 'sm:items-end'
+                      } font-mono text-[9px] sm:text-[11px] text-white/70 space-y-0.5 shrink-0`}
+                    >
                       {currentPhoto.caption && (
                         <span className="text-white/90 font-medium">{currentPhoto.caption}</span>
                       )}
-                      <span className="text-white/50 text-[10px]">
+                      <span className="text-white/50 text-[8px] sm:text-[10px] hidden sm:inline-block">
                         [ Click to view in Lightbox · Esc to close ]
                       </span>
                     </div>
