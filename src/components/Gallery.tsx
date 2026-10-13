@@ -26,7 +26,7 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
             </h2>
           </div>
           <p className="text-sm font-mono text-[#6E6E73] dark:text-[#8E8E93] max-w-xs">
-            Photographic archive records from the Department of Information Technology at SGGSIE&amp;T.
+            Photographic archive records from the Information Technology Students Association (ITSA) at SGGSIE&amp;T Nanded.
           </p>
         </div>
 

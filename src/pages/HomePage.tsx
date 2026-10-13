@@ -18,6 +18,7 @@ export const HomePage: React.FC = () => {
 
   // Critical Scroll Position & Hash Navigation Support
   useEffect(() => {
+    document.title = 'ITSA SGGSIE&T | Information Technology Students Association';
     if (!window.location.hash) {
       window.scrollTo(0, 0);
     } else {

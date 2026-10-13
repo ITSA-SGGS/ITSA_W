@@ -35,6 +35,7 @@ export const Hero: React.FC = () => {
           {/* Monolithic Title & Identity */}
           <h1 className="headline-hero font-display font-bold tracking-tight text-[#111113] dark:text-[#F5F5F7] mb-4 pointer-events-none">
             ITSA
+            <span className="sr-only"> — Information Technology Students Association, SGGSIE&amp;T Nanded</span>
           </h1>
 
           {/* Cinematic Statement */}
@@ -44,15 +45,15 @@ export const Hero: React.FC = () => {
           </p>
 
           {/* Supporting Text */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm sm:text-base font-sans dark:text-[#A1A1A6] text-[#48484E] mb-12 max-w-xl pointer-events-none">
+          <p className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm sm:text-base font-sans dark:text-[#A1A1A6] text-[#48484E] mb-12 max-w-xl pointer-events-none">
             <span className="font-medium text-[#111113] dark:text-[#F5F5F7]">
               Information Technology Students Association
             </span>
             <span className="hidden sm:inline text-[#6E6E73]">•</span>
-            <span className="font-mono text-xs text-[#6E6E73] dark:text-[#8E8E93]">
+            <span className="font-mono text-xs text-[#6E6E73] dark:text-[#8E8E93]" title="Shri Guru Gobind Singhji Institute of Engineering & Technology, Nanded">
               SGGSIE&amp;T, Nanded
             </span>
-          </div>
+          </p>
 
           {/* Restrained Hero Action */}
           <div className="flex items-center gap-4 pointer-events-auto">
@@ -80,7 +81,7 @@ export const Hero: React.FC = () => {
 
         <div className="flex items-center gap-4">
           <span>COORDINATES: 19.1176° N, 77.2995° E</span>
-          <span className="text-[#111113] dark:text-[#F5F5F7]">SGGSIE&amp;T</span>
+          <span className="text-[#111113] dark:text-[#F5F5F7]" title="Shri Guru Gobind Singhji Institute of Engineering & Technology, Nanded">SGGSIE&amp;T NANDED</span>
         </div>
       </div>
     </section>

@@ -2,10 +2,12 @@ import React from 'react';
 import { Mail, ArrowUp } from 'lucide-react';
 import { GithubIcon, LinkedinIcon, InstagramIcon } from './Icons';
 import { useTheme } from '../hooks/useTheme';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import { ItsaLogo } from './ItsaLogo';
 
 export const Footer: React.FC = () => {
   const { theme } = useTheme();
+  const { settings } = useSiteSettings();
   const isDark = theme === 'dark';
 
   const scrollToTop = () => {
@@ -39,16 +41,16 @@ export const Footer: React.FC = () => {
             </span>
             <div className="flex flex-col space-y-2.5">
               <a
-                href="https://github.com"
+                href={settings?.social_links?.github || "https://github.com/itsa-sggsiet"}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <GithubIcon className="w-4 h-4" />
-                <span>GitHub · /itsa-sggs</span>
+                <span>GitHub · /itsa-sggsiet</span>
               </a>
               <a
-                href="https://linkedin.com"
+                href={settings?.social_links?.linkedin || "https://linkedin.com/company/itsa-sggsiet"}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
@@ -57,7 +59,7 @@ export const Footer: React.FC = () => {
                 <span>LinkedIn · ITSA SGGSIE&amp;T</span>
               </a>
               <a
-                href="https://instagram.com"
+                href={settings?.social_links?.instagram || "https://instagram.com/itsa_sggsiet"}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
@@ -66,11 +68,11 @@ export const Footer: React.FC = () => {
                 <span>Instagram · @itsa_sggsiet</span>
               </a>
               <a
-                href="mailto:itsa@sggs.ac.in"
+                href={`mailto:${settings?.contact_info?.email || 'itsa@sggs.ac.in'}`}
                 className="hover:text-[#0072CE] dark:hover:text-[#38BDF8] transition-colors inline-flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />
-                <span>Email · itsa@sggs.ac.in</span>
+                <span>Email · {settings?.contact_info?.email || 'itsa@sggs.ac.in'}</span>
               </a>
             </div>
           </div>

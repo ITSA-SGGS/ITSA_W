@@ -259,7 +259,7 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
             <div className="flex items-center gap-3 mb-3 font-mono text-xs tracking-widest uppercase dark:text-[#A1A1A6] text-[#6E6E73]">
               <span className="text-[#0072CE] dark:text-[#38BDF8]">01</span>
               <span>/</span>
-              <span>CALENDAR OF SESSIONS</span>
+              <span>ITSA EVENTS &amp; SESSIONS</span>
             </div>
             <h2 className="headline-section font-display font-bold text-[#111113] dark:text-[#F5F5F7] tracking-tight">
               Events.
@@ -267,7 +267,7 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
           </div>
 
           <p className="font-mono text-xs text-[#6E6E73] dark:text-[#8E8E93] max-w-sm">
-            Photographic archive and session collections across all technical disciplines, athletics, and cultural productions.
+            Photographic archive and session collections across technical disciplines, athletics, and cultural productions organized by ITSA SGGSIE&amp;T.
           </p>
         </div>
 

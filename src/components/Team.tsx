@@ -21,10 +21,10 @@ export const Team: React.FC<TeamProps> = ({ onSelectMember }) => {
             <div className="flex items-center gap-3 mb-3 font-mono text-xs tracking-widest uppercase dark:text-[#A1A1A6] text-[#6E6E73]">
               <span className="text-[#0072CE] dark:text-[#38BDF8]">03</span>
               <span>/</span>
-              <span>THE PEOPLE</span>
+              <span>ITSA COMMITTEE &amp; LEADERSHIP</span>
             </div>
             <h2 className="headline-section font-display font-bold text-[#111113] dark:text-[#F5F5F7] tracking-tight">
-              Committee &amp; Coordinators.
+              ITSA Committee &amp; Coordinators.
             </h2>
           </div>
 

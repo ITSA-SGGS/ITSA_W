@@ -62,12 +62,12 @@ export const Navbar: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex items-center justify-between">
           {/* Brand Mark with Official ITSA Logo */}
           <a
-            href="#"
+            href="/"
             className="group flex items-center gap-3.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] rounded-lg"
             aria-label="ITSA SGGSIE&T Home"
           >
             <div className="relative h-9 w-auto flex items-center">
-              <ItsaLogo className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+              <ItsaLogo className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" alt="ITSA SGGSIE&T Official Emblem" />
             </div>
 
             <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
