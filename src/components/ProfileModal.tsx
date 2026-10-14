@@ -61,6 +61,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ member, onClose }) =
               <img
                 src={member.photo_url || member.photo}
                 alt={member.name}
+                width={176}
+                height={176}
+                loading="lazy"
+                decoding="async"
                 onError={() => setImgError(true)}
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
               />

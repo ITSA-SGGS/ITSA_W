@@ -67,7 +67,7 @@ export const Navbar: React.FC = () => {
             aria-label="ITSA SGGSIE&T Home"
           >
             <div className="relative h-9 w-auto flex items-center">
-              <ItsaLogo className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" alt="ITSA SGGSIE&T Official Emblem" />
+              <ItsaLogo className="h-8 sm:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105" alt="ITSA SGGSIE&T Official Emblem" width={40} height={32} loading="eager" fetchPriority="high" />
             </div>
 
             <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">

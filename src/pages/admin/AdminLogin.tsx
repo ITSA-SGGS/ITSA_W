@@ -68,7 +68,7 @@ export const AdminLogin: React.FC = () => {
         <div className="p-8 sm:p-10 rounded-2xl border border-black/10 dark:border-white/10 bg-[#FFFFFF] dark:bg-[#0D0D0F] shadow-xl space-y-8">
           {/* Logo Brand Header */}
           <div className="flex items-center gap-3 pb-2">
-            <ItsaLogo className="h-10 w-auto object-contain" alt="ITSA Official Logo" />
+            <ItsaLogo className="h-10 w-auto object-contain" alt="ITSA Official Logo" width={50} height={40} loading="eager" />
             <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
               <span className="font-display font-bold text-lg tracking-tight">ITSA</span>
               <span className="font-mono text-[9px] text-[#6E6E73] dark:text-[#8E8E93]">CMS PORTAL</span>

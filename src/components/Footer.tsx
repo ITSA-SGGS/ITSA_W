@@ -21,7 +21,7 @@ export const Footer: React.FC = () => {
           {/* Brand & Address */}
           <div className="md:col-span-6 space-y-4">
             <div className="flex items-center gap-3">
-              <ItsaLogo className="h-8 w-auto object-contain" alt="ITSA Official Logo" />
+              <ItsaLogo className="h-8 w-auto object-contain" alt="ITSA Official Logo" width={40} height={32} loading="lazy" />
               <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
                 <span className="font-display font-bold text-lg tracking-tight">ITSA</span>
                 <span className="font-mono text-[10px] text-[#6E6E73] dark:text-[#8E8E93]">~/itsa</span>

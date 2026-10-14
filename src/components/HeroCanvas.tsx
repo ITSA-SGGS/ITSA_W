@@ -104,28 +104,24 @@ export const HeroCanvas: React.FC = () => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let width = 0;
     let height = 0;
     let frameCount = 0;
     let isVisible = true;
+    let isRunning = false;
+
+    // Cached container/canvas coordinates to avoid layout thrashing in move events
+    let cachedRect: DOMRect | null = null;
+    const updateCachedRect = () => {
+      if (canvas) {
+        cachedRect = canvas.getBoundingClientRect();
+      }
+    };
 
     // Check prefers-reduced-motion
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     let reducedMotion = mediaQuery.matches;
-    const handleReducedMotionChange = (e: MediaQueryListEvent) => {
-      reducedMotion = e.matches;
-    };
-    mediaQuery.addEventListener('change', handleReducedMotionChange);
-
-    // Track intersection to pause when scrolled away
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isVisible = entry.isIntersecting;
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(container);
 
     // Cursor / Pointer tracking for organic magnetic field
     const pointer = {
@@ -155,9 +151,10 @@ export const HeroCanvas: React.FC = () => {
     const feedbacks: FeedbackToast[] = [];
 
     const handlePointerMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointer.targetX = e.clientX - rect.left;
-      pointer.targetY = e.clientY - rect.top;
+      if (!cachedRect) updateCachedRect();
+      if (!cachedRect) return;
+      pointer.targetX = e.clientX - cachedRect.left;
+      pointer.targetY = e.clientY - cachedRect.top;
       pointer.active = true;
     };
 
@@ -167,10 +164,11 @@ export const HeroCanvas: React.FC = () => {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length > 0) {
+        if (!cachedRect) updateCachedRect();
+        if (!cachedRect) return;
         const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        pointer.targetX = touch.clientX - rect.left;
-        pointer.targetY = touch.clientY - rect.top;
+        pointer.targetX = touch.clientX - cachedRect.left;
+        pointer.targetY = touch.clientY - cachedRect.top;
         pointer.active = true;
       }
     };
@@ -181,9 +179,10 @@ export const HeroCanvas: React.FC = () => {
 
     const handleInteractionClick = (clientX: number, clientY: number) => {
       if (reducedMotion) return;
-      const rect = canvas.getBoundingClientRect();
-      const clickX = clientX - rect.left;
-      const clickY = clientY - rect.top;
+      updateCachedRect();
+      if (!cachedRect) return;
+      const clickX = clientX - cachedRect.left;
+      const clickY = clientY - cachedRect.top;
       const now = performance.now();
       const isMobile = width < 768;
 
@@ -192,7 +191,6 @@ export const HeroCanvas: React.FC = () => {
         const hitRadius = isMobile ? 44 : 34;
 
         if (distToSignal < hitRadius) {
-          // Trigger expanding shockwave from the captured signal
           ripples.push({
             x: signal.x,
             y: signal.y,
@@ -202,7 +200,6 @@ export const HeroCanvas: React.FC = () => {
             alpha: 1.0,
           });
 
-          // Show subtle technical toast
           feedbacks.push({
             x: Math.max(70, Math.min(width - 80, signal.x)),
             y: Math.max(40, signal.y - 16),
@@ -218,7 +215,6 @@ export const HeroCanvas: React.FC = () => {
         }
       }
 
-      // Subtle ambient micro-pulse on ambient click in the character field
       if (clickX > width * 0.4) {
         ripples.push({
           x: clickX,
@@ -238,15 +234,10 @@ export const HeroCanvas: React.FC = () => {
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length > 0) {
         const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        pointer.targetX = touch.clientX - rect.left;
-        pointer.targetY = touch.clientY - rect.top;
-        pointer.active = true;
         handleInteractionClick(touch.clientX, touch.clientY);
       }
     };
 
-    // Attach listeners to window/container so hero background interactions flow seamlessly
     window.addEventListener('mousemove', handlePointerMove, { passive: true });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
@@ -258,27 +249,22 @@ export const HeroCanvas: React.FC = () => {
 
     const initColumns = () => {
       columns.length = 0;
+      if (width <= 0 || height <= 0) return;
       const isMobile = width < 768;
       const isTablet = width >= 768 && width < 1024;
 
-      // Start X: right side concentration
-      // Desktop: from 38% to 100%
-      // Tablet: from 42% to 100%
-      // Mobile: from 48% to 100%
       const startXRatio = isMobile ? 0.48 : isTablet ? 0.42 : 0.38;
       const startX = width * startXRatio;
       const availableWidth = width - startX;
 
-      // Column spacing: dense packing on the right
       const colSpacing = isMobile ? 20 : isTablet ? 22 : 20;
       const colCount = Math.max(6, Math.floor(availableWidth / colSpacing));
+      const fontSize = isMobile ? 11 : 13;
+      const lineHeight = fontSize + (isMobile ? 5 : 6);
+      const itemCount = Math.ceil(height / lineHeight) + 8;
 
       for (let i = 0; i < colCount; i++) {
         const x = startX + i * colSpacing + (Math.random() * 4 - 2);
-        const fontSize = isMobile ? 11 : Math.floor(Math.random() * 3) + 12; // 12-14px
-        const lineHeight = fontSize + (isMobile ? 5 : 6);
-        const itemCount = Math.ceil(height / lineHeight) + 8;
-
         const items: StreamItem[] = [];
         for (let j = 0; j < itemCount; j++) {
           items.push(getRandomGlyph());
@@ -287,7 +273,7 @@ export const HeroCanvas: React.FC = () => {
         columns.push({
           x,
           y: (Math.random() * height) - height * 0.5,
-          speed: 0.35 + Math.random() * 0.75, // organic varied speeds
+          speed: 0.35 + Math.random() * 0.75,
           fontSize,
           lineHeight,
           items,
@@ -297,24 +283,6 @@ export const HeroCanvas: React.FC = () => {
         });
       }
     };
-
-    const resize = () => {
-      if (!canvas || !container) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = container.clientWidth || window.innerWidth;
-      height = container.clientHeight || window.innerHeight;
-
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      initColumns();
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
 
     // Color definitions (RGB vectors for smooth lerp transitions)
     const darkColorsRGB: Record<StreamItem['colorType'], [number, number, number]> = {
@@ -340,28 +308,70 @@ export const HeroCanvas: React.FC = () => {
       return `rgb(${r}, ${g}, ${b})`;
     };
 
+    // Single static snapshot for reduced motion
+    const drawStaticSnapshot = () => {
+      if (width <= 0 || height <= 0) return;
+      ctx.clearRect(0, 0, width, height);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      const isMobile = width < 768;
+      const startXRatio = isMobile ? 0.48 : 0.38;
+      const activeWidth = width * (1 - startXRatio);
+      const fontSize = isMobile ? 11 : 13;
+      ctx.font = `${fontSize}px "JetBrains Mono", monospace`;
+
+      const t = themeRef.current === 'dark' ? 1 : 0;
+      const currentColors = {
+        highlight: getInterpolatedColor('highlight', t),
+        primary: getInterpolatedColor('primary', t),
+        secondary: getInterpolatedColor('secondary', t),
+        dim: getInterpolatedColor('dim', t),
+      };
+
+      for (const col of columns) {
+        const progress = Math.max(0, Math.min(1, (col.x - width * startXRatio) / activeWidth));
+        const horizontalFade = Math.pow(progress, isMobile ? 1.15 : 1.25);
+        if (horizontalFade <= 0.01) continue;
+
+        for (let i = 0; i < col.items.length; i++) {
+          const item = col.items[i];
+          const itemY = i * col.lineHeight;
+          if (itemY < 0 || itemY > height) continue;
+
+          const charAlpha = horizontalFade * (item.colorType === 'highlight' ? 0.95 : item.colorType === 'dim' ? 0.52 : 0.85);
+          ctx.fillStyle = currentColors[item.colorType];
+          ctx.globalAlpha = Math.min(1, charAlpha);
+          ctx.fillText(item.text, col.x, itemY);
+        }
+      }
+    };
+
     // Render loop
     const render = () => {
-      animationFrameId = requestAnimationFrame(render);
-
-      // Pause when tab hidden or hero not in viewport
-      if (document.hidden || !isVisible) return;
+      if (!isRunning || document.hidden || !isVisible || reducedMotion) {
+        isRunning = false;
+        return;
+      }
 
       const now = performance.now();
       frameCount++;
 
-      // Smooth pointer position lerp (spring follow for fluid field bending)
+      // Smooth pointer position lerp
       if (pointer.active) {
         pointer.x += (pointer.targetX - pointer.x) * 0.16;
         pointer.y += (pointer.targetY - pointer.y) * 0.16;
         pointer.intensity = Math.min(1, pointer.intensity + 0.08);
-      } else {
+      } else if (pointer.intensity > 0) {
         pointer.intensity = Math.max(0, pointer.intensity - 0.05);
       }
 
       // Smooth theme color interpolation
       const targetThemeProgress = themeRef.current === 'dark' ? 1 : 0;
-      themeProgressRef.current += (targetThemeProgress - themeProgressRef.current) * 0.08;
+      if (Math.abs(targetThemeProgress - themeProgressRef.current) > 0.001) {
+        themeProgressRef.current += (targetThemeProgress - themeProgressRef.current) * 0.08;
+      } else {
+        themeProgressRef.current = targetThemeProgress;
+      }
       const t = themeProgressRef.current;
 
       const currentColors = {
@@ -371,7 +381,6 @@ export const HeroCanvas: React.FC = () => {
         dim: getInterpolatedColor('dim', t),
       };
 
-      // Canvas background is strictly 100% transparent - NO background fill, NO vignette gradient
       ctx.clearRect(0, 0, width, height);
 
       const isMobile = width < 768;
@@ -379,9 +388,8 @@ export const HeroCanvas: React.FC = () => {
       const activeWidth = width * (1 - startXRatio);
 
       // Manage Signal Spawning (Easter Egg)
-      if (!reducedMotion && columns.length > 0) {
+      if (columns.length > 0) {
         if (!signal.active && now > nextSignalSpawnTime) {
-          // Select a column located in the active right 50%
           const minCol = Math.floor(columns.length * 0.4);
           const randCol = Math.floor(minCol + Math.random() * (columns.length - minCol));
           const targetCol = columns[randCol];
@@ -415,34 +423,10 @@ export const HeroCanvas: React.FC = () => {
         }
       }
 
-      if (reducedMotion) {
-        // Single static snapshot for reduced motion
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-
-        for (const col of columns) {
-          const progress = Math.max(0, Math.min(1, (col.x - width * startXRatio) / activeWidth));
-          const horizontalFade = Math.pow(progress, isMobile ? 1.15 : 1.25);
-          if (horizontalFade <= 0.01) continue;
-
-          ctx.font = `${col.fontSize}px "JetBrains Mono", monospace`;
-
-          for (let i = 0; i < col.items.length; i++) {
-            const item = col.items[i];
-            const itemY = i * col.lineHeight;
-            if (itemY < 0 || itemY > height) continue;
-
-            const charAlpha = horizontalFade * (item.colorType === 'highlight' ? 0.95 : item.colorType === 'dim' ? 0.52 : 0.85);
-            ctx.fillStyle = currentColors[item.colorType];
-            ctx.globalAlpha = Math.min(1, charAlpha);
-            ctx.fillText(item.text, col.x, itemY);
-          }
-        }
-        return;
-      }
-
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
+      const defaultFontSize = isMobile ? 11 : 13;
+      ctx.font = `${defaultFontSize}px "JetBrains Mono", monospace`;
 
       const influenceRadius = isMobile ? 85 : 130;
       const maxDisplacement = isMobile ? 14 : 24;
@@ -450,16 +434,10 @@ export const HeroCanvas: React.FC = () => {
       for (let c = 0; c < columns.length; c++) {
         const col = columns[c];
 
-        // Horizontal Opacity Curve (fading only the characters from left to right)
-        // Left (0-38%): 0%
-        // Center (38-60%): 20-45%
-        // Right (60-100%): 65-100%
         const progress = Math.max(0, Math.min(1, (col.x - width * startXRatio) / activeWidth));
         const horizontalFade = Math.pow(progress, isMobile ? 1.15 : 1.25);
 
         if (horizontalFade <= 0.01) continue;
-
-        ctx.font = `${col.fontSize}px "JetBrains Mono", monospace`;
 
         const totalColHeight = col.items.length * col.lineHeight;
 
@@ -467,7 +445,6 @@ export const HeroCanvas: React.FC = () => {
           const item = col.items[i];
           let itemY = col.y + i * col.lineHeight;
 
-          // Wrap individual characters cleanly across the canvas height
           while (itemY < -col.lineHeight * 2) {
             itemY += totalColHeight;
           }
@@ -477,46 +454,48 @@ export const HeroCanvas: React.FC = () => {
 
           if (itemY < -col.lineHeight || itemY > height + col.lineHeight) continue;
 
-          // Compute Magnetic Cursor Repulsion & Proximity Brightness
           let offsetX = 0;
           let offsetY = 0;
           let proximityBoost = 0;
 
+          // Compute magnetic cursor repulsion with bounding box check
           if (pointer.intensity > 0.01) {
             const dx = col.x - pointer.x;
-            const dy = itemY - pointer.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < influenceRadius && dist > 0.5) {
-              const norm = 1 - dist / influenceRadius;
-              const force = Math.pow(norm, 1.5) * pointer.intensity;
-              const angle = Math.atan2(dy, dx);
-
-              offsetX = Math.cos(angle) * force * maxDisplacement;
-              offsetY = Math.sin(angle) * force * (maxDisplacement * 0.5);
-              proximityBoost = force * 0.4;
+            if (Math.abs(dx) < influenceRadius) {
+              const dy = itemY - pointer.y;
+              if (Math.abs(dy) < influenceRadius) {
+                const dist = Math.hypot(dx, dy);
+                if (dist < influenceRadius && dist > 0.5) {
+                  const norm = 1 - dist / influenceRadius;
+                  const force = Math.pow(norm, 1.5) * pointer.intensity;
+                  const angle = Math.atan2(dy, dx);
+                  offsetX = Math.cos(angle) * force * maxDisplacement;
+                  offsetY = Math.sin(angle) * force * (maxDisplacement * 0.5);
+                  proximityBoost = force * 0.4;
+                }
+              }
             }
           }
 
-          // Apply Shockwave Ripple Influences
+          // Apply Shockwave Ripple Influences with bounding box check
           for (let r = 0; r < ripples.length; r++) {
             const wave = ripples[r];
-            const wDist = Math.hypot(col.x - wave.x, itemY - wave.y);
-            const wDiff = Math.abs(wDist - wave.radius);
-
-            if (wDiff < 32) {
-              const wForce = (1 - wDiff / 32) * wave.alpha;
-              const wAngle = Math.atan2(itemY - wave.y, col.x - wave.x);
-              offsetX += Math.cos(wAngle) * wForce * 9;
-              offsetY += Math.sin(wAngle) * wForce * 5;
-              proximityBoost += wForce * 0.5;
+            if (Math.abs(col.x - wave.x) < wave.radius + 32 && Math.abs(itemY - wave.y) < wave.radius + 32) {
+              const wDist = Math.hypot(col.x - wave.x, itemY - wave.y);
+              const wDiff = Math.abs(wDist - wave.radius);
+              if (wDiff < 32) {
+                const wForce = (1 - wDiff / 32) * wave.alpha;
+                const wAngle = Math.atan2(itemY - wave.y, col.x - wave.x);
+                offsetX += Math.cos(wAngle) * wForce * 9;
+                offsetY += Math.sin(wAngle) * wForce * 5;
+                proximityBoost += wForce * 0.5;
+              }
             }
           }
 
           const renderX = col.x + offsetX;
           const renderY = itemY + offsetY;
 
-          // Check if this node is the active Signal Target
           const isCurrentSignal = signal.active && signal.colIdx === c && signal.itemIdx === i;
           let itemText = item.text;
           let itemColor = currentColors[item.colorType];
@@ -529,13 +508,12 @@ export const HeroCanvas: React.FC = () => {
             proximityBoost += 0.45 + 0.15 * Math.sin(signal.pulsePhase);
           }
 
-          // Character opacity calculation
           let baseItemAlpha = 0.82;
           if (item.colorType === 'highlight') baseItemAlpha = 1.0;
           else if (item.colorType === 'primary') baseItemAlpha = 0.90;
           else if (item.colorType === 'dim') baseItemAlpha = 0.55;
 
-          const themeMultiplier = 0.85 + 0.15 * t; // 0.85 in light mode, 1.0 in dark mode
+          const themeMultiplier = 0.85 + 0.15 * t;
           const finalAlpha = Math.max(
             0,
             Math.min(1, (baseItemAlpha + proximityBoost) * col.baseOpacity * horizontalFade * themeMultiplier)
@@ -545,7 +523,6 @@ export const HeroCanvas: React.FC = () => {
           ctx.globalAlpha = finalAlpha;
           ctx.fillText(itemText, renderX, renderY);
 
-          // Render subtle pulsing bracket tag on active Signal
           if (isCurrentSignal) {
             const pulseGlow = (Math.sin(signal.pulsePhase) + 1) * 0.5;
             ctx.strokeStyle = currentColors.highlight;
@@ -555,13 +532,11 @@ export const HeroCanvas: React.FC = () => {
           }
         }
 
-        // Vertical movement
         col.y += col.speed;
         if (col.y > totalColHeight) {
           col.y -= totalColHeight;
         }
 
-        // Randomly mutate characters to simulate active systems computation
         if (frameCount - col.lastChange >= col.changeInterval) {
           col.lastChange = frameCount;
           const randIdx = Math.floor(Math.random() * col.items.length);
@@ -579,7 +554,6 @@ export const HeroCanvas: React.FC = () => {
           continue;
         }
 
-        // Fade in (0-200ms) -> Hold (200-1200ms) -> Fade out (1200-1800ms)
         let fbAlpha = 1;
         if (elapsed < 200) {
           fbAlpha = elapsed / 200;
@@ -595,7 +569,6 @@ export const HeroCanvas: React.FC = () => {
         const label = `${fb.text} · ${fb.subtext}`;
         const textWidth = ctx.measureText(label).width;
 
-        // Subtle translucent capsule backing
         ctx.fillStyle = t > 0.5 ? 'rgba(5, 5, 8, 0.85)' : 'rgba(245, 245, 242, 0.9)';
         ctx.strokeStyle = currentColors.primary;
         ctx.lineWidth = 1;
@@ -612,28 +585,103 @@ export const HeroCanvas: React.FC = () => {
         ctx.globalAlpha = fbAlpha;
         ctx.fillText(label, toastX, toastY);
       }
+
+      if (isRunning) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
-    animationFrameId = requestAnimationFrame(render);
+    const startAnimation = () => {
+      if (isRunning || reducedMotion || !isVisible || document.hidden) return;
+      isRunning = true;
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    const stopAnimation = () => {
+      isRunning = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+      }
+    };
+
+    const handleReducedMotionChange = (e: MediaQueryListEvent) => {
+      reducedMotion = e.matches;
+      if (reducedMotion) {
+        stopAnimation();
+        drawStaticSnapshot();
+      } else {
+        startAnimation();
+      }
+    };
+    mediaQuery.addEventListener('change', handleReducedMotionChange);
+
+    // Track intersection to pause when scrolled away
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          startAnimation();
+        } else {
+          stopAnimation();
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopAnimation();
+      } else if (isVisible) {
+        startAnimation();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Observe layout changes without triggering forced synchronous reflow
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width: w, height: h } = entry.contentRect;
+        if (w <= 0 || h <= 0) continue;
+        width = Math.floor(w);
+        height = Math.floor(h);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        updateCachedRect();
+        initColumns();
+
+        if (reducedMotion) {
+          drawStaticSnapshot();
+        } else if (isVisible && !document.hidden && !isRunning) {
+          startAnimation();
+        }
+      }
+    });
+    resizeObserver.observe(container);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stopAnimation();
       window.removeEventListener('mousemove', handlePointerMove);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('resize', resize);
       canvas.removeEventListener('click', handleClick);
       container.removeEventListener('mouseleave', handlePointerLeave);
       mediaQuery.removeEventListener('change', handleReducedMotionChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       observer.disconnect();
+      resizeObserver.disconnect();
     };
   }, []);
 
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden select-none"
+      className="absolute inset-0 overflow-hidden select-none pointer-events-none"
       aria-hidden="true"
     >
       <canvas

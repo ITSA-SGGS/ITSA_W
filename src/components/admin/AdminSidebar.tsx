@@ -70,7 +70,7 @@ export const AdminSidebar: React.FC = () => {
       <div className="space-y-8">
         {/* Brand Header */}
         <Link to="/admin/dashboard" className="flex items-center gap-3">
-          <ItsaLogo className="h-8 w-auto object-contain" alt="ITSA Logo" />
+          <ItsaLogo className="h-8 w-auto object-contain" alt="ITSA Logo" width={40} height={32} loading="lazy" />
           <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-3">
             <span className="font-display font-bold text-sm tracking-tight text-[#111113] dark:text-[#F5F5F7]">
               ITSA CMS

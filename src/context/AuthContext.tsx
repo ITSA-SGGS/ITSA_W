@@ -27,10 +27,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * On initial mount, verify whether an active session cookie exists by calling GET /api/auth/me.
+   * On initial mount, verify whether an active session cookie exists by calling GET /api/auth/me
+   * only when navigating to admin surfaces, preventing unnecessary network contention on the public homepage.
    */
   useEffect(() => {
     let mounted = true;
+
+    const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+    if (!isAdminPath) {
+      setIsLoading(false);
+      return;
+    }
 
     async function checkSession() {
       try {

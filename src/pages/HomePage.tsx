@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Hero } from '../components/Hero';
 import { Events } from '../components/Events';
@@ -6,28 +6,36 @@ import { Quote } from '../components/Quote';
 import { Team } from '../components/Team';
 import { Gallery } from '../components/Gallery';
 import { Footer } from '../components/Footer';
-import { ProfileModal } from '../components/ProfileModal';
-import { LightboxModal } from '../components/LightboxModal';
 import { CommitteeMember, GalleryItem } from '../types';
 import { useArchive } from '../hooks/useArchive';
+
+// Lazy-load interactive overlay modals to keep initial bundle lean
+const ProfileModal = lazy(() =>
+  import('../components/ProfileModal').then((m) => ({ default: m.ProfileModal }))
+);
+const LightboxModal = lazy(() =>
+  import('../components/LightboxModal').then((m) => ({ default: m.LightboxModal }))
+);
 
 export const HomePage: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<CommitteeMember | null>(null);
   const [selectedLightboxItem, setSelectedLightboxItem] = useState<GalleryItem | null>(null);
   const { items: archiveItems } = useArchive();
 
-  // Critical Scroll Position & Hash Navigation Support
+  // Scroll Position & Hash Navigation Support (deferred to avoid layout thrashing during paint)
   useEffect(() => {
     document.title = 'ITSA SGGSIE&T | Information Technology Students Association';
     if (!window.location.hash) {
       window.scrollTo(0, 0);
     } else {
-      const target = document.querySelector(window.location.hash);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth' });
-      } else {
-        window.scrollTo(0, 0);
-      }
+      requestAnimationFrame(() => {
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          window.scrollTo(0, 0);
+        }
+      });
     }
   }, []);
 
@@ -57,18 +65,26 @@ export const HomePage: React.FC = () => {
       {/* Minimal Footer */}
       <Footer />
 
-      {/* Interactive Modals */}
-      <ProfileModal
-        member={selectedMember}
-        onClose={() => setSelectedMember(null)}
-      />
+      {/* Interactive Modals (Loaded on-demand only when triggered) */}
+      {selectedMember && (
+        <Suspense fallback={null}>
+          <ProfileModal
+            member={selectedMember}
+            onClose={() => setSelectedMember(null)}
+          />
+        </Suspense>
+      )}
 
-      <LightboxModal
-        item={selectedLightboxItem}
-        items={archiveItems}
-        onClose={() => setSelectedLightboxItem(null)}
-        onSelect={(item) => setSelectedLightboxItem(item)}
-      />
+      {selectedLightboxItem && (
+        <Suspense fallback={null}>
+          <LightboxModal
+            item={selectedLightboxItem}
+            items={archiveItems}
+            onClose={() => setSelectedLightboxItem(null)}
+            onSelect={(item) => setSelectedLightboxItem(item)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

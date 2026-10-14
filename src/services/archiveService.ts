@@ -71,6 +71,30 @@ export function resolveArchiveImageUrl(rawUrl: string | null | undefined): strin
   }
 }
 
+/**
+ * Returns the optimized WebP thumbnail URL for archive images when available.
+ */
+export function getArchiveThumbnailUrl(rawUrl: string | null | undefined): string {
+  if (!rawUrl) return '';
+  const resolved = resolveArchiveImageUrl(rawUrl);
+  if (resolved.includes('/archive/') && resolved.endsWith('.jpeg')) {
+    return resolved.replace(/\.jpeg$/, '-thumb.webp');
+  }
+  return resolved;
+}
+
+/**
+ * Returns the full-fidelity WebP URL for archive images when available.
+ */
+export function getArchiveWebpUrl(rawUrl: string | null | undefined): string {
+  if (!rawUrl) return '';
+  const resolved = resolveArchiveImageUrl(rawUrl);
+  if (resolved.includes('/archive/') && resolved.endsWith('.jpeg')) {
+    return resolved.replace(/\.jpeg$/, '.webp');
+  }
+  return resolved;
+}
+
 // In-memory fallback representation for the 5 authentic ITSA archive photographs
 let inMemoryArchive: GalleryItem[] = GALLERY_ITEMS.map((item, idx) => {
   const resolved = resolveArchiveImageUrl(item.image);
@@ -109,26 +133,40 @@ function mapDbArchiveToApp(row: any, idx: number): GalleryItem {
   };
 }
 
+// In-flight cache promise to deduplicate concurrent requests from multiple mounting components
+let publishedArchivePromise: Promise<GalleryItem[]> | null = null;
+
+export function invalidateArchiveCache(): void {
+  publishedArchivePromise = null;
+}
+
 // ============================================================================
 // PUBLIC READ QUERIES (Filtered strictly by is_published = true)
 // ============================================================================
 
 /**
  * Fetches published archive records from the Express API with graceful fallback to the 5 local photographs.
+ * Deduplicates in-flight requests across concurrent mounting components.
  */
 export async function getPublishedArchiveRecords(): Promise<GalleryItem[]> {
-  try {
-    const data = await api.get<any[]>('/api/archive?limit=100');
+  if (publishedArchivePromise) return publishedArchivePromise;
 
-    if (!data || data.length === 0) {
+  publishedArchivePromise = (async () => {
+    try {
+      const data = await api.get<any[]>('/api/archive?limit=100');
+
+      if (!data || data.length === 0) {
+        return inMemoryArchive.filter((a) => a.is_published);
+      }
+
+      return data.map((row, i) => mapDbArchiveToApp(row, i));
+    } catch (err) {
+      console.warn('Failed to fetch archive records from API, using mock fallback:', err);
       return inMemoryArchive.filter((a) => a.is_published);
     }
+  })();
 
-    return data.map((row, i) => mapDbArchiveToApp(row, i));
-  } catch (err) {
-    console.warn('Failed to fetch archive records from API, using mock fallback:', err);
-    return inMemoryArchive.filter((a) => a.is_published);
-  }
+  return publishedArchivePromise;
 }
 
 // ============================================================================
@@ -182,6 +220,7 @@ export async function createArchiveRecord(formData: ArchiveFormData): Promise<Ga
   };
 
   const data = await api.post<any>('/api/admin/archive', payload);
+  invalidateArchiveCache();
   return mapDbArchiveToApp(data, 0);
 }
 
@@ -211,6 +250,7 @@ export async function updateArchiveRecord(
   if (formData.is_published !== undefined) payload.is_published = Boolean(formData.is_published);
 
   const data = await api.put<any>(`/api/admin/archive/${encodeURIComponent(id)}`, payload);
+  invalidateArchiveCache();
   return mapDbArchiveToApp(data, 0);
 }
 
@@ -224,6 +264,7 @@ export async function toggleArchivePublished(
   const data = await api.patch<any>(`/api/admin/archive/${encodeURIComponent(id)}/publish`, {
     is_published: !currentPublishedState,
   });
+  invalidateArchiveCache();
   return mapDbArchiveToApp(data, 0);
 }
 
@@ -232,6 +273,7 @@ export async function toggleArchivePublished(
  */
 export async function deleteArchiveRecord(id: string): Promise<void> {
   await api.delete<{ message: string }>(`/api/admin/archive/${encodeURIComponent(id)}`);
+  invalidateArchiveCache();
 }
 
 /**

@@ -150,48 +150,73 @@ function mapDbEventToApp(row: any, idx: number): SampleEvent {
   };
 }
 
+// In-flight promise caches for events
+let publishedEventsPromise: Promise<SampleEvent[]> | null = null;
+const categoryEventsPromises = new Map<string, Promise<SampleEvent[]>>();
+
+export function invalidateEventsCache(): void {
+  publishedEventsPromise = null;
+  categoryEventsPromises.clear();
+}
+
 // ============================================================================
 // PUBLIC READ QUERIES (Filtered by is_published = true)
 // ============================================================================
 
 /**
  * Fetches published events for the public website.
+ * Deduplicates in-flight calls.
  */
 export async function getPublishedEvents(): Promise<SampleEvent[]> {
-  try {
-    const data = await api.get<any[]>('/api/events?limit=100');
+  if (publishedEventsPromise) return publishedEventsPromise;
 
-    if (!data || data.length === 0) {
+  publishedEventsPromise = (async () => {
+    try {
+      const data = await api.get<any[]>('/api/events?limit=100');
+
+      if (!data || data.length === 0) {
+        return inMemoryEvents.filter((e) => e.is_published);
+      }
+
+      return data.map((row, i) => mapDbEventToApp(row, i));
+    } catch (err) {
+      console.warn('Failed to fetch events from API, using in-memory fallback:', err);
       return inMemoryEvents.filter((e) => e.is_published);
     }
+  })();
 
-    return data.map((row, i) => mapDbEventToApp(row, i));
-  } catch (err) {
-    console.warn('Failed to fetch events from API, using in-memory fallback:', err);
-    return inMemoryEvents.filter((e) => e.is_published);
-  }
+  return publishedEventsPromise;
 }
 
 /**
- * Fetches published events filtered by category.
+ * Fetches published events filtered by category with in-flight deduplication.
  */
 export async function getPublishedEventsByCategory(
   category: EventCategoryType | string
 ): Promise<SampleEvent[]> {
   const normCat = normalizeCategory(category);
 
-  try {
-    const data = await api.get<any[]>(`/api/events?category=${encodeURIComponent(normCat)}&limit=100`);
+  if (categoryEventsPromises.has(normCat)) {
+    return categoryEventsPromises.get(normCat)!;
+  }
 
-    if (!data || data.length === 0) {
+  const p = (async () => {
+    try {
+      const data = await api.get<any[]>(`/api/events?category=${encodeURIComponent(normCat)}&limit=100`);
+
+      if (!data || data.length === 0) {
+        return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
+      }
+
+      return data.map((row, i) => mapDbEventToApp(row, i));
+    } catch (err) {
+      console.warn(`Failed to fetch events for category ${normCat} from API:`, err);
       return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
     }
+  })();
 
-    return data.map((row, i) => mapDbEventToApp(row, i));
-  } catch (err) {
-    console.warn(`Failed to fetch events for category ${normCat} from API:`, err);
-    return inMemoryEvents.filter((e) => e.is_published && e.category === normCat);
-  }
+  categoryEventsPromises.set(normCat, p);
+  return p;
 }
 
 // ============================================================================
@@ -229,6 +254,7 @@ export async function createEvent(formData: EventFormData): Promise<SampleEvent>
   };
 
   const data = await api.post<any>('/api/admin/events', payload);
+  invalidateEventsCache();
   return mapDbEventToApp(data, 0);
 }
 
@@ -256,6 +282,7 @@ export async function updateEvent(
   if (formData.display_order !== undefined) payload.display_order = Number(formData.display_order);
 
   const data = await api.put<any>(`/api/admin/events/${id}`, payload);
+  invalidateEventsCache();
   return mapDbEventToApp(data, 0);
 }
 
@@ -264,6 +291,7 @@ export async function updateEvent(
  */
 export async function deleteEvent(id: string): Promise<void> {
   await api.delete(`/api/admin/events/${id}`);
+  invalidateEventsCache();
 }
 
 /**
@@ -271,6 +299,7 @@ export async function deleteEvent(id: string): Promise<void> {
  */
 export async function togglePublishEvent(id: string, currentPublishedState: boolean): Promise<SampleEvent> {
   const data = await api.patch<any>(`/api/admin/events/${id}/publish`, { is_published: !currentPublishedState });
+  invalidateEventsCache();
   return mapDbEventToApp(data, 0);
 }
 
@@ -279,6 +308,7 @@ export async function togglePublishEvent(id: string, currentPublishedState: bool
  */
 export async function toggleFeatureEvent(id: string, currentFeaturedState: boolean): Promise<SampleEvent> {
   const data = await api.patch<any>(`/api/admin/events/${id}/feature`, { is_featured: !currentFeaturedState });
+  invalidateEventsCache();
   return mapDbEventToApp(data, 0);
 }
 

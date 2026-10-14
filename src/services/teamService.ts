@@ -68,26 +68,39 @@ function mapDbMemberToApp(row: any): CommitteeMember {
   };
 }
 
+let activeTeamPromise: Promise<CommitteeMember[]> | null = null;
+
+export function invalidateTeamCache(): void {
+  activeTeamPromise = null;
+}
+
 // ============================================================================
 // PUBLIC READ QUERIES (Filtered strictly by is_active = true)
 // ============================================================================
 
 /**
  * Fetches all active committee members for the public website.
+ * Deduplicates in-flight requests.
  */
 export async function getActiveCommitteeMembers(): Promise<CommitteeMember[]> {
-  try {
-    const data = await api.get<any[]>('/api/team');
+  if (activeTeamPromise) return activeTeamPromise;
 
-    if (!data || data.length === 0) {
+  activeTeamPromise = (async () => {
+    try {
+      const data = await api.get<any[]>('/api/team');
+
+      if (!data || data.length === 0) {
+        return inMemoryMembers.filter((m) => m.is_active);
+      }
+
+      return data.map(mapDbMemberToApp);
+    } catch (err) {
+      console.warn('Failed to fetch committee members from API, using mock fallback:', err);
       return inMemoryMembers.filter((m) => m.is_active);
     }
+  })();
 
-    return data.map(mapDbMemberToApp);
-  } catch (err) {
-    console.warn('Failed to fetch committee members from API, using mock fallback:', err);
-    return inMemoryMembers.filter((m) => m.is_active);
-  }
+  return activeTeamPromise;
 }
 
 /**

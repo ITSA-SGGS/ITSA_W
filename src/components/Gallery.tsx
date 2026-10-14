@@ -2,6 +2,7 @@ import React from 'react';
 import { useArchive } from '../hooks/useArchive';
 import { GalleryItem } from '../types';
 import { Maximize2 } from 'lucide-react';
+import { getArchiveThumbnailUrl, getArchiveWebpUrl } from '../services/archiveService';
 
 interface GalleryProps {
   onSelectImage: (item: GalleryItem) => void;
@@ -48,8 +49,14 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
               className="group relative md:col-span-12 lg:col-span-7 h-[300px] sm:h-[420px] lg:h-[480px] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-[#EBEBE6]/60 dark:bg-[#0D0D0F] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] dark:focus-visible:ring-[#38BDF8] transition-all duration-300 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/40"
             >
               <img
-                src={leadAnchor.image}
+                src={getArchiveThumbnailUrl(leadAnchor.image)}
+                srcSet={`${getArchiveThumbnailUrl(leadAnchor.image)} 800w, ${getArchiveWebpUrl(leadAnchor.image)} 1600w`}
+                sizes="(max-width: 1024px) 100vw, 58vw"
                 alt={leadAnchor.title}
+                width={1200}
+                height={800}
+                decoding="async"
+                style={{ aspectRatio: '16 / 10' }}
                 className="w-full h-full object-cover object-[center_35%] transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 loading="lazy"
               />
@@ -86,8 +93,14 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
               className="group relative md:col-span-6 lg:col-span-5 h-[300px] sm:h-[420px] lg:h-[480px] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-[#EBEBE6]/60 dark:bg-[#0D0D0F] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] dark:focus-visible:ring-[#38BDF8] transition-all duration-300 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/40"
             >
               <img
-                src={secondaryAnchor.image}
+                src={getArchiveThumbnailUrl(secondaryAnchor.image)}
+                srcSet={`${getArchiveThumbnailUrl(secondaryAnchor.image)} 800w, ${getArchiveWebpUrl(secondaryAnchor.image)} 1400w`}
+                sizes="(max-width: 1024px) 100vw, 42vw"
                 alt={secondaryAnchor.title}
+                width={800}
+                height={800}
+                decoding="async"
+                style={{ aspectRatio: '1 / 1' }}
                 className="w-full h-full object-cover object-[center_30%] transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 loading="lazy"
               />
@@ -125,8 +138,14 @@ export const Gallery: React.FC<GalleryProps> = ({ onSelectImage }) => {
               className="group relative md:col-span-6 lg:col-span-4 h-[260px] sm:h-[340px] lg:h-[360px] rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-[#EBEBE6]/60 dark:bg-[#0D0D0F] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0072CE] dark:focus-visible:ring-[#38BDF8] transition-all duration-300 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/40"
             >
               <img
-                src={item.image}
+                src={getArchiveThumbnailUrl(item.image)}
+                srcSet={`${getArchiveThumbnailUrl(item.image)} 600w, ${getArchiveWebpUrl(item.image)} 1200w`}
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 alt={item.title}
+                width={600}
+                height={600}
+                decoding="async"
+                style={{ aspectRatio: '1 / 1' }}
                 className="w-full h-full object-cover object-[center_30%] transition-transform duration-500 ease-out group-hover:scale-[1.02]"
                 loading="lazy"
               />

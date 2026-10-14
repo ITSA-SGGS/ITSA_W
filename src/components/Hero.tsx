@@ -22,7 +22,7 @@ export const Hero: React.FC = () => {
           {/* Eyebrow with Official Brand Tag */}
           <div className="inline-flex items-center gap-3 mb-8 px-3.5 py-1.5 rounded-full bg-black/[0.04] dark:bg-white/[0.04] border border-black/10 dark:border-white/10 text-xs font-mono tracking-wider dark:text-[#A1A1A6] text-[#48484E] pointer-events-auto">
             <div className="h-4 w-auto flex items-center">
-              <ItsaLogo className="h-3.5 w-auto object-contain" alt="ITSA Emblem" />
+              <ItsaLogo className="h-3.5 w-auto object-contain" alt="ITSA Emblem" size="thumb" width={18} height={14} loading="eager" fetchPriority="low" />
             </div>
             <span className="text-black/30 dark:text-white/30">|</span>
             <span>~/itsa</span>

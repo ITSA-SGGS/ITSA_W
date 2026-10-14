@@ -56,7 +56,7 @@ html.dark {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.4s ease, color 0.4s ease;
+  transition: background-color 0.3s ease;
   letter-spacing: -0.015em;
 }
 

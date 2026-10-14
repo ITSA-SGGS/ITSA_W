@@ -21,30 +21,44 @@ let inMemorySettings: Record<string, any> = {
   },
 };
 
+// In-flight promise cache to deduplicate simultaneous requests from multiple mounting components
+let publicSettingsPromise: Promise<Record<string, any>> | null = null;
+
+export function invalidateSiteSettingsCache(): void {
+  publicSettingsPromise = null;
+}
+
 // ============================================================================
 // PUBLIC READ QUERIES (Filtered strictly by is_public = true)
 // ============================================================================
 
 /**
  * Fetches all public site settings with fallback.
+ * Deduplicates in-flight calls across mounting components.
  */
 export async function getPublicSiteSettings(): Promise<Record<string, any>> {
-  try {
-    const data = await api.get<Record<string, any>>('/api/settings/public');
+  if (publicSettingsPromise) return publicSettingsPromise;
 
-    if (!data || Object.keys(data).length === 0) {
+  publicSettingsPromise = (async () => {
+    try {
+      const data = await api.get<Record<string, any>>('/api/settings/public');
+
+      if (!data || Object.keys(data).length === 0) {
+        return { ...inMemorySettings };
+      }
+
+      const settingsMap: Record<string, any> = { ...inMemorySettings };
+      for (const [key, value] of Object.entries(data)) {
+        settingsMap[key] = value;
+      }
+      return settingsMap;
+    } catch (err) {
+      console.warn('Failed to fetch site settings from API:', err);
       return { ...inMemorySettings };
     }
+  })();
 
-    const settingsMap: Record<string, any> = { ...inMemorySettings };
-    for (const [key, value] of Object.entries(data)) {
-      settingsMap[key] = value;
-    }
-    return settingsMap;
-  } catch (err) {
-    console.warn('Failed to fetch site settings from API:', err);
-    return { ...inMemorySettings };
-  }
+  return publicSettingsPromise;
 }
 
 // ============================================================================
@@ -61,6 +75,7 @@ export async function updateSiteSetting(
 ): Promise<void> {
   await api.put<{ message: string }>('/api/admin/settings', { [key]: value });
   inMemorySettings[key] = value;
+  invalidateSiteSettingsCache();
 }
 
 /**
@@ -84,4 +99,5 @@ export async function saveBatchSiteSettings(
     ...inMemorySettings,
     ...sanitizedMap,
   };
+  invalidateSiteSettingsCache();
 }

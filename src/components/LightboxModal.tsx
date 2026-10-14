@@ -1,8 +1,7 @@
 import React, { useEffect } from 'react';
 import { GalleryItem } from '../types';
 import { X, ArrowLeft, ArrowRight } from 'lucide-react';
-import { useArchive } from '../hooks/useArchive';
-import { resolveArchiveImageUrl } from '../services/archiveService';
+import { getArchiveWebpUrl, resolveArchiveImageUrl } from '../services/archiveService';
 
 interface LightboxModalProps {
   item: GalleryItem | null;
@@ -12,8 +11,7 @@ interface LightboxModalProps {
 }
 
 export const LightboxModal: React.FC<LightboxModalProps> = ({ item, items: propItems, onClose, onSelect }) => {
-  const { items: hookItems } = useArchive();
-  const galleryItems = propItems && propItems.length > 0 ? propItems : hookItems;
+  const galleryItems = propItems && propItems.length > 0 ? propItems : [];
 
   useEffect(() => {
     if (!item) return;
@@ -119,8 +117,10 @@ export const LightboxModal: React.FC<LightboxModalProps> = ({ item, items: propI
         className="max-w-6xl max-h-[84vh] flex flex-col items-center justify-center z-10 space-y-3"
       >
         <img
-          src={resolveArchiveImageUrl(item.image_url || item.image)}
+          src={getArchiveWebpUrl(item.image_url || item.image)}
           alt={item.title || 'ITSA Documentary Archive Photo'}
+          width={1600}
+          height={1200}
           className="max-w-full max-h-[70vh] sm:max-h-[74vh] object-contain rounded-xl shadow-2xl border border-white/10"
         />
 

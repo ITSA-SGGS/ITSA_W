@@ -118,27 +118,6 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
   // Aspect ratio cache derived from naturalWidth / naturalHeight
   const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
 
-  // Preload and detect intrinsic dimensions for all category photos
-  useEffect(() => {
-    publishedPhotos.forEach((photo) => {
-      const url = photo.image_url || photo.image;
-      if (!url) return;
-      const img = new Image();
-      img.src = url;
-      if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
-        const ratio = img.naturalWidth / img.naturalHeight;
-        setAspectRatios((prev) => (prev[url] === ratio ? prev : { ...prev, [url]: ratio }));
-      } else {
-        img.onload = () => {
-          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-            const ratio = img.naturalWidth / img.naturalHeight;
-            setAspectRatios((prev) => (prev[url] === ratio ? prev : { ...prev, [url]: ratio }));
-          }
-        };
-      }
-    });
-  }, [publishedPhotos]);
-
   // Category switch handler: immediately resets index, progress, and restarts autoplay
   const handleCategoryChange = (newCategory: EventCategoryKey) => {
     if (newCategory === activeCategory) return;
@@ -354,6 +333,8 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
               {/* Image Slides with Smooth Crossfade */}
               {publishedPhotos.map((photo, idx) => {
                 const isActive = idx === currentIndex;
+                const isNext = totalPhotos > 1 && idx === (currentIndex + 1) % totalPhotos;
+                if (!isActive && !isNext) return null;
 
                 return (
                   <div
@@ -366,6 +347,10 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                     <img
                       src={photo.image_url}
                       alt={photo.title}
+                      width={1200}
+                      height={800}
+                      decoding="async"
+                      style={{ aspectRatio: activeRatio ? `${activeRatio}` : '16 / 9' }}
                       onLoad={(e) => {
                         const { naturalWidth, naturalHeight } = e.currentTarget;
                         if (naturalWidth > 0 && naturalHeight > 0) {
@@ -383,7 +368,7 @@ export const Events: React.FC<EventsProps> = ({ onSelectPhoto }) => {
                           ? 'scale-[1.01] transition-transform duration-[6000ms] ease-out'
                           : 'scale-100'
                       }`}
-                      loading={idx === 0 ? 'eager' : 'lazy'}
+                      loading="lazy"
                     />
 
                     {/* Gradient Atmosphere Overlays */}

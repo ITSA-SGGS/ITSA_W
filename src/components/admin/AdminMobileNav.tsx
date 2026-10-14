@@ -71,7 +71,7 @@ export const AdminMobileNav: React.FC = () => {
       {/* Top Mobile Bar */}
       <div className="flex items-center justify-between px-6 py-4">
         <Link to="/admin/dashboard" className="flex items-center gap-2.5">
-          <ItsaLogo className="h-7 w-auto object-contain" alt="ITSA Logo" />
+          <ItsaLogo className="h-7 w-auto object-contain" alt="ITSA Logo" width={35} height={28} loading="lazy" />
           <div className="flex flex-col border-l border-black/10 dark:border-white/10 pl-2">
             <span className="font-display font-bold text-xs tracking-tight">ITSA CMS</span>
             <span className="font-mono text-[8px] text-[#0072CE] dark:text-[#38BDF8] uppercase font-semibold">
